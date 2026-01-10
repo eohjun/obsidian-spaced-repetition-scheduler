@@ -41,7 +41,7 @@ export interface ReviewSettings {
   newCardsPerDay: number;       // 하루 새 카드 (기본 10)
   groupSimilar: boolean;        // 유사 노트 그룹핑 (기본 true)
   similarityThreshold: number;  // 유사도 임계값 (기본 0.7)
-  autoRegister: boolean;        // 새 노트 자동 등록 (기본 false)
+  // VE 연동으로 자동 등록 불필요 (autoRegister 제거됨)
 }
 
 export interface QuizSettings {
@@ -80,7 +80,6 @@ export const DEFAULT_SETTINGS: SRSSettings = {
     newCardsPerDay: 10,
     groupSimilar: true,
     similarityThreshold: 0.7,
-    autoRegister: false,
   },
 
   quiz: {

@@ -1,6 +1,6 @@
 {
   "name": "obsidian-spaced-repetition-scheduler",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Spaced repetition scheduler for Obsidian with SM-2 algorithm and AI quiz generation",
   "main": "main.js",
   "scripts": {

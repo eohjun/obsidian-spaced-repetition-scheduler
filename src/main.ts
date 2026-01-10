@@ -3,7 +3,7 @@
  * SM-2 알고리즘 기반 간격 반복 학습 플러그인
  */
 
-import { Plugin, TFile, Notice } from 'obsidian';
+import { Plugin, Notice, TFile } from 'obsidian';
 import {
   SRSSettings,
   DEFAULT_SETTINGS,
@@ -21,7 +21,6 @@ import { SM2Scheduler } from './adapters/scheduling/sm2-scheduler';
 import { CosineSimilarityClusteringService } from './adapters/clustering/cosine-similarity-clustering';
 import { ClaudeProvider } from './adapters/llm/claude-provider';
 import { OpenAIProvider } from './adapters/llm/openai-provider';
-import { generateNoteId } from './core/domain/utils/note-id';
 import { DashboardView, DASHBOARD_VIEW_TYPE } from './views/dashboard-view';
 import { ReviewModal } from './views/review-modal';
 import { QuizModal } from './views/quiz-modal';
@@ -106,6 +105,9 @@ export default class SRSPlugin extends Plugin {
     this.embeddingsReader = new VaultEmbeddingsReader(this.app.vault);
     this.scheduler = new SM2Scheduler();
     this.clusteringService = new CosineSimilarityClusteringService();
+
+    // VE 연동: 자동 노트 추적
+    this.reviewRepository.setEmbeddingsReader(this.embeddingsReader);
   }
 
   private initializeAI(): void {
@@ -176,22 +178,6 @@ export default class SRSPlugin extends Plugin {
       callback: () => this.activateDashboard(),
     });
 
-    // 현재 노트 등록
-    this.addCommand({
-      id: 'register-note',
-      name: '이 노트 복습 등록 (Register This Note)',
-      checkCallback: (checking: boolean) => {
-        const file = this.app.workspace.getActiveFile();
-        if (file && file.extension === 'md') {
-          if (!checking) {
-            this.registerNoteForReview(file);
-          }
-          return true;
-        }
-        return false;
-      },
-    });
-
     // 현재 노트 퀴즈
     this.addCommand({
       id: 'generate-quiz',
@@ -245,16 +231,8 @@ export default class SRSPlugin extends Plugin {
   // ===========================================================================
 
   private registerEvents(): void {
-    // 파일 생성 이벤트 (자동 등록)
-    if (this.settings.review.autoRegister) {
-      this.registerEvent(
-        this.app.vault.on('create', (file) => {
-          if (file instanceof TFile && file.extension === 'md') {
-            this.autoRegisterNote(file);
-          }
-        })
-      );
-    }
+    // VE 기반 자동 추적으로 수동 이벤트 불필요
+    // Vault Embeddings가 노트 생성/수정을 자동 추적함
   }
 
   // ===========================================================================
@@ -270,37 +248,6 @@ export default class SRSPlugin extends Plugin {
     }
 
     new ReviewModal(this.app, this).open();
-  }
-
-  async registerNoteForReview(file: TFile): Promise<void> {
-    const noteId = generateNoteId(file.path);
-    const existingCard = await this.reviewRepository.getCard(noteId);
-
-    if (existingCard) {
-      new Notice('이미 복습 대상으로 등록된 노트입니다.');
-      return;
-    }
-
-    const card = {
-      noteId,
-      notePath: file.path,
-      noteTitle: file.basename,
-      sm2State: {
-        repetition: 0,
-        interval: 0,
-        easeFactor: 2.5,
-        nextReview: new Date(),
-      },
-      retentionLevel: 'novice' as const,
-      reviewHistory: [],
-      tags: [],
-      createdAt: new Date(),
-      lastModified: new Date(),
-    };
-
-    await this.reviewRepository.saveCard(card);
-    new Notice(`"${file.basename}" 복습 등록 완료!`);
-    await this.updateBadge();
   }
 
   async generateQuizForNote(file: TFile): Promise<void> {
@@ -341,25 +288,6 @@ export default class SRSPlugin extends Plugin {
     const more = dueCards.length > 5 ? `\n... 외 ${dueCards.length - 5}개` : '';
 
     new Notice(`오늘 복습 (${dueCards.length}개):\n${list}${more}`, 5000);
-  }
-
-  private async autoRegisterNote(file: TFile): Promise<void> {
-    // 제외 폴더 확인
-    const excluded = this.settings.excludeFolders.some((folder) =>
-      file.path.startsWith(folder)
-    );
-
-    if (excluded) return;
-
-    const noteId = generateNoteId(file.path);
-    const existingCard = await this.reviewRepository.getCard(noteId);
-
-    if (!existingCard) {
-      await this.registerNoteForReview(file);
-      if (this.settings.advanced.debugMode) {
-        console.log('[SRS] Auto-registered:', file.path);
-      }
-    }
   }
 
   // ===========================================================================

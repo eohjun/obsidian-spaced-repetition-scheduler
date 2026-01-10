@@ -32,6 +32,7 @@ import type {
   RetentionLevel,
   ReviewRecord,
 } from '../../core/domain/entities/review-card';
+import type { VaultEmbeddingsReader } from '../embeddings/vault-embeddings-reader';
 import { CrossPlatformFileUtils } from '../obsidian/cross-platform-file-utils';
 
 // =============================================================================
@@ -63,9 +64,17 @@ export class FrontmatterReviewRepository implements IReviewRepository {
   private fileUtils: CrossPlatformFileUtils;
   private cache: Map<string, ReviewCard> = new Map();
   private cacheInitialized = false;
+  private embeddingsReader: VaultEmbeddingsReader | null = null;
 
   constructor(private app: App) {
     this.fileUtils = new CrossPlatformFileUtils(app);
+  }
+
+  /**
+   * VaultEmbeddingsReader 설정 (플러그인 초기화 시 호출)
+   */
+  setEmbeddingsReader(reader: VaultEmbeddingsReader): void {
+    this.embeddingsReader = reader;
   }
 
   /**
@@ -244,11 +253,66 @@ export class FrontmatterReviewRepository implements IReviewRepository {
   }
 
   /**
-   * 캐시 초기화 (Vault 전체 스캔)
+   * 캐시 초기화 (Vault Embeddings 기반)
+   * VE index에 있는 모든 노트를 복습 대상으로 관리
    */
   async initializeCache(): Promise<void> {
     this.cache.clear();
 
+    // Vault Embeddings 사용 가능한 경우 VE 기반으로 초기화
+    if (this.embeddingsReader) {
+      const available = await this.embeddingsReader.isAvailable();
+      if (available) {
+        await this.initializeCacheFromVE();
+        this.cacheInitialized = true;
+        return;
+      }
+    }
+
+    // VE 없으면 기존 방식 (frontmatter에 srs가 있는 노트만)
+    await this.initializeCacheFromFrontmatter();
+    this.cacheInitialized = true;
+  }
+
+  /**
+   * Vault Embeddings 기반 캐시 초기화
+   * - VE index의 모든 노트가 복습 대상
+   * - frontmatter에 srs 없으면 기본 SM2 상태로 초기화
+   */
+  private async initializeCacheFromVE(): Promise<void> {
+    if (!this.embeddingsReader) return;
+
+    const index = await this.embeddingsReader.readIndex();
+    if (!index) return;
+
+    const noteEntries = Object.entries(index.notes);
+
+    for (const [noteId, entry] of noteEntries) {
+      const file = this.fileUtils.getFile(entry.path);
+      if (!file) continue;
+
+      const content = await this.fileUtils.readFile(entry.path);
+      if (content === null) continue;
+
+      // frontmatter에서 기존 srs 데이터 확인
+      const srsData = this.parseFrontmatter(content);
+
+      if (srsData) {
+        // 기존 SM2 상태 사용
+        const card = this.toReviewCard(file, srsData);
+        this.cache.set(card.noteId, card);
+      } else {
+        // 새 노트: 기본 SM2 상태로 초기화 (nextReview = 오늘)
+        const card = this.createDefaultCard(noteId, file);
+        this.cache.set(noteId, card);
+      }
+    }
+  }
+
+  /**
+   * Frontmatter 기반 캐시 초기화 (VE 없을 때 폴백)
+   */
+  private async initializeCacheFromFrontmatter(): Promise<void> {
     const files = this.app.vault.getMarkdownFiles();
 
     for (const file of files) {
@@ -261,8 +325,32 @@ export class FrontmatterReviewRepository implements IReviewRepository {
       const card = this.toReviewCard(file, srsData);
       this.cache.set(card.noteId, card);
     }
+  }
 
-    this.cacheInitialized = true;
+  /**
+   * 기본 SM2 상태의 새 카드 생성
+   */
+  private createDefaultCard(noteId: string, file: TFile): ReviewCard {
+    const now = new Date();
+
+    const sm2State: SM2State = {
+      repetition: 0,
+      interval: 0,
+      easeFactor: 2.5,
+      nextReview: now, // 오늘이 첫 복습일
+    };
+
+    return {
+      noteId,
+      notePath: file.path,
+      noteTitle: file.basename,
+      sm2State,
+      retentionLevel: 'novice',
+      reviewHistory: [],
+      tags: [],
+      createdAt: new Date(file.stat.ctime),
+      lastModified: new Date(file.stat.mtime),
+    };
   }
 
   /**

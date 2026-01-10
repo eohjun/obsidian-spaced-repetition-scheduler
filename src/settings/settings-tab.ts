@@ -209,18 +209,7 @@ export class SRSSettingTab extends PluginSettingTab {
         });
     }
 
-    // 새 노트 자동 등록
-    new Setting(reviewContainer)
-      .setName('새 노트 자동 등록')
-      .setDesc('새로 생성된 노트를 자동으로 복습 대상에 추가')
-      .addToggle((toggle) => {
-        toggle
-          .setValue(this.plugin.settings.review.autoRegister)
-          .onChange(async (value) => {
-            this.plugin.settings.review.autoRegister = value;
-            await this.plugin.saveSettings();
-          });
-      });
+    // VE 연동으로 자동 등록 불필요 (Vault Embeddings가 모든 노트를 자동 추적)
 
     // 제외 폴더
     new Setting(reviewContainer)

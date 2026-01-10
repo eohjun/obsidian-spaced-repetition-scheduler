@@ -383,17 +383,6 @@ export class DashboardView extends ItemView {
       this.plugin.startReviewSession();
     };
 
-    // Register current note
-    const registerBtn = sectionEl.createEl('button', {
-      cls: 'srs-action-btn',
-    });
-    registerBtn.innerHTML = `➕ 현재 노트 등록`;
-    registerBtn.onclick = async () => {
-      const file = this.app.workspace.getActiveFile();
-      if (file) {
-        await this.plugin.registerNoteForReview(file);
-        await this.refresh();
-      }
-    };
+    // VE 기반 자동 추적으로 수동 등록 버튼 불필요
   }
 }
