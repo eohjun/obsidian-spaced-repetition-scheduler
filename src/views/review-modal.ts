@@ -47,16 +47,22 @@ export class ReviewModal extends Modal {
   // ===========================================================================
 
   private async loadDueCards(): Promise<void> {
-    const allCards = await this.plugin.getReviewRepository().getAllCards();
-    const now = new Date();
-    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    // 세션 매니저 기반 카드 선택
+    const { reviewCards, newCardsToIntroduce } = await this.plugin.selectTodayReviewCards();
 
-    this.cards = allCards
-      .filter((card) => {
-        const nextReview = new Date(card.sm2State.nextReview);
-        return nextReview <= todayEnd;
-      })
-      .slice(0, this.plugin.settings.review.dailyLimit);
+    // 복습 카드 + 새로 도입된 카드 합치기
+    this.cards = [...reviewCards];
+
+    // 새로 도입된 카드들도 오늘 복습 대상에 추가 (introduceNewCard가 nextReview를 오늘로 설정함)
+    for (const card of newCardsToIntroduce) {
+      if (!this.cards.find((c) => c.noteId === card.noteId)) {
+        // 다시 로드하여 업데이트된 nextReview 반영
+        const updatedCard = await this.plugin.getReviewRepository().getCard(card.noteId);
+        if (updatedCard) {
+          this.cards.push(updatedCard);
+        }
+      }
+    }
 
     // 정착도 낮은 순으로 정렬
     this.cards.sort((a, b) => {
@@ -121,11 +127,24 @@ export class ReviewModal extends Modal {
     const total = this.cards.length;
     const percent = Math.round((this.currentIndex / total) * 100);
 
+    // 세션 정보 가져오기
+    const sessionManager = this.plugin.getSessionManager();
+    const queue = sessionManager.getDailyQueue();
+    const focusSession = queue.focusSession;
+
+    let sessionInfo = '';
+    if (focusSession && focusSession.status === 'active') {
+      const remaining = focusSession.remainingNoteIds.length;
+      sessionInfo = `<div class="srs-session-info">📌 ${focusSession.clusterLabel} (${remaining}개 남음)</div>`;
+    }
+
     progressEl.innerHTML = `
+      ${sessionInfo}
       <div class="srs-progress-text">${current} / ${total}</div>
       <div class="srs-progress-bar">
         <div class="srs-progress-fill" style="width: ${percent}%"></div>
       </div>
+      <div class="srs-daily-info">오늘 복습: ${queue.reviewedCount}/${queue.dailyLimit} | 신규: ${queue.newCardsIntroduced}/${queue.newCardsLimit}</div>
     `;
   }
 
@@ -307,6 +326,9 @@ export class ReviewModal extends Modal {
     const updatedCard = { ...card, sm2State: newState };
     const newLevel = scheduler.estimateRetentionLevel(updatedCard);
 
+    // 신규 카드 여부 확인 (repetition이 0이었으면 신규)
+    const isNewCard = card.sm2State.repetition === 0;
+
     // 복습 기록 추가
     card.reviewHistory.push({
       reviewedAt: new Date(),
@@ -321,6 +343,13 @@ export class ReviewModal extends Modal {
 
     // 저장
     await this.plugin.getReviewRepository().saveCard(card);
+
+    // 세션 매니저에 복습 완료 기록
+    const sessionManager = this.plugin.getSessionManager();
+    sessionManager.markReviewed(card.noteId, isNewCard);
+
+    // 세션 데이터 저장
+    await this.plugin.saveSessionData();
 
     // 다음 카드
     this.currentIndex++;

@@ -24,8 +24,17 @@ import { OpenAIProvider } from './adapters/llm/openai-provider';
 import { DashboardView, DASHBOARD_VIEW_TYPE } from './views/dashboard-view';
 import { ReviewModal } from './views/review-modal';
 import { QuizModal } from './views/quiz-modal';
+import {
+  ReviewSessionManager,
+  type ReviewSessionConfig,
+} from './core/application/services/review-session-manager';
+import type { PersistedSessionData } from './core/domain/entities/focus-session';
+import { convertToNoteClusters } from './core/application/services/cluster-adapter';
 
 export { DASHBOARD_VIEW_TYPE };
+
+// 세션 데이터 저장 키
+const SESSION_DATA_KEY = 'srs-session-data';
 
 export default class SRSPlugin extends Plugin {
   settings!: SRSSettings;
@@ -35,6 +44,7 @@ export default class SRSPlugin extends Plugin {
   private embeddingsReader!: VaultEmbeddingsReader;
   private scheduler!: SM2Scheduler;
   private clusteringService!: CosineSimilarityClusteringService;
+  private sessionManager!: ReviewSessionManager;
 
   // Ribbon element for badge
   private ribbonEl: HTMLElement | null = null;
@@ -46,7 +56,7 @@ export default class SRSPlugin extends Plugin {
     await this.loadSettings();
 
     // 서비스 초기화
-    this.initializeServices();
+    await this.initializeServices();
 
     // AI 서비스 초기화 (API 키가 있는 경우)
     this.initializeAI();
@@ -72,6 +82,10 @@ export default class SRSPlugin extends Plugin {
 
   async onunload(): Promise<void> {
     console.log('[SRS] Unloading Spaced Repetition Scheduler plugin');
+
+    // 세션 데이터 저장
+    await this.saveSessionData();
+
     resetAIService();
   }
 
@@ -100,7 +114,7 @@ export default class SRSPlugin extends Plugin {
   // Service Initialization
   // ===========================================================================
 
-  private initializeServices(): void {
+  private async initializeServices(): Promise<void> {
     this.reviewRepository = new FrontmatterReviewRepository(this.app);
     this.embeddingsReader = new VaultEmbeddingsReader(this.app.vault);
     this.scheduler = new SM2Scheduler();
@@ -108,6 +122,41 @@ export default class SRSPlugin extends Plugin {
 
     // VE 연동: 자동 노트 추적
     this.reviewRepository.setEmbeddingsReader(this.embeddingsReader);
+
+    // 세션 매니저 초기화 (영속화된 데이터 로드)
+    const persistedSession = await this.loadSessionData();
+    const sessionConfig: Partial<ReviewSessionConfig> = {
+      dailyLimit: this.settings.review.dailyLimit,
+      newCardsPerDay: this.settings.review.newCardsPerDay,
+      similarityThreshold: this.settings.review.similarityThreshold,
+    };
+    this.sessionManager = new ReviewSessionManager(persistedSession, sessionConfig);
+  }
+
+  /**
+   * 세션 데이터 로드
+   */
+  private async loadSessionData(): Promise<PersistedSessionData | null> {
+    try {
+      const data = await this.loadData();
+      return data?.[SESSION_DATA_KEY] || null;
+    } catch (error) {
+      console.error('[SRS] Failed to load session data:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 세션 데이터 저장
+   */
+  async saveSessionData(): Promise<void> {
+    try {
+      const data = await this.loadData() || {};
+      data[SESSION_DATA_KEY] = this.sessionManager.getPersistedData();
+      await this.saveData(data);
+    } catch (error) {
+      console.error('[SRS] Failed to save session data:', error);
+    }
   }
 
   private initializeAI(): void {
@@ -215,7 +264,10 @@ export default class SRSPlugin extends Plugin {
   async updateBadge(): Promise<void> {
     if (!this.settings.notifications.showBadge || !this.ribbonEl) return;
 
-    const dueCount = await this.reviewRepository.getDueTodayCount();
+    // 세션 기반 남은 복습 수 표시
+    const queue = this.sessionManager.getDailyQueue();
+    const remaining = queue.dailyLimit - queue.reviewedCount;
+    const dueCount = Math.max(0, remaining);
 
     if (dueCount > 0) {
       this.ribbonEl.setAttribute('data-srs-badge', dueCount.toString());
@@ -333,5 +385,64 @@ export default class SRSPlugin extends Plugin {
 
   getClusteringService(): CosineSimilarityClusteringService {
     return this.clusteringService;
+  }
+
+  getSessionManager(): ReviewSessionManager {
+    return this.sessionManager;
+  }
+
+  /**
+   * 클러스터 기반 오늘 복습할 노트 선택
+   * - 세션 매니저가 dailyLimit과 newCardsPerDay 적용
+   * - VE 클러스터링으로 관련 노트 그룹핑
+   */
+  async selectTodayReviewCards(): Promise<{
+    reviewCards: import('./core/domain/entities/review-card').ReviewCard[];
+    newCardsToIntroduce: import('./core/domain/entities/review-card').ReviewCard[];
+  }> {
+    // 모든 카드 로드
+    const allCards = await this.reviewRepository.getAllCards();
+
+    // VE 임베딩 기반 클러스터링
+    const embeddings = await this.embeddingsReader.readAllEmbeddings();
+
+    // NoteEmbedding → NoteWithVector 변환
+    const notesWithVectors = Array.from(embeddings.values()).map((emb) => ({
+      noteId: emb.noteId,
+      vector: emb.vector,
+    }));
+
+    // 클러스터링 수행
+    const clusterResult = await this.clusteringService.cluster(notesWithVectors, {
+      threshold: this.settings.review.similarityThreshold,
+      maxGroupSize: 20,
+    });
+    const noteGroups = clusterResult.groups;
+
+    // NoteGroup → NoteCluster 변환
+    const now = new Date();
+    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    const dueCards = allCards.filter((card) => {
+      const nextReview = new Date(card.sm2State.nextReview);
+      return nextReview <= todayEnd;
+    });
+    const clusters = convertToNoteClusters(noteGroups, dueCards);
+
+    // 세션 매니저로 오늘 복습 노트 선택
+    const reviewCards = this.sessionManager.selectTodayReviewNotes(allCards, clusters);
+
+    // 신규 노트 도입 선택
+    const unintroducedCards = await this.reviewRepository.getUnintroducedCards();
+    const newCardsToIntroduce = this.sessionManager.selectNewCardsToIntroduce(
+      unintroducedCards,
+      clusters
+    );
+
+    // 선택된 신규 노트 도입 (nextReview를 오늘로 설정)
+    for (const card of newCardsToIntroduce) {
+      await this.reviewRepository.introduceNewCard(card.noteId);
+    }
+
+    return { reviewCards, newCardsToIntroduce };
   }
 }

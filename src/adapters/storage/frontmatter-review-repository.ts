@@ -331,44 +331,26 @@ export class FrontmatterReviewRepository implements IReviewRepository {
   }
 
   /**
-   * 기본 SM2 상태의 새 카드 생성 (TFile 사용)
-   */
-  private createDefaultCard(noteId: string, file: TFile): ReviewCard {
-    const now = new Date();
-
-    const sm2State: SM2State = {
-      repetition: 0,
-      interval: 0,
-      easeFactor: 2.5,
-      nextReview: now, // 오늘이 첫 복습일
-    };
-
-    return {
-      noteId,
-      notePath: file.path,
-      noteTitle: file.basename,
-      sm2State,
-      retentionLevel: 'novice',
-      reviewHistory: [],
-      tags: [],
-      createdAt: new Date(file.stat.ctime),
-      lastModified: new Date(file.stat.mtime),
-    };
-  }
-
-  /**
    * 기본 SM2 상태의 새 카드 생성 (경로 사용 - Cross-platform)
    * ⚠️ adapter.stat 사용으로 iOS/Git sync 대응
+   *
+   * 신규 노트는 nextReview = 미래로 설정하여 점진적 도입 지원
+   * - repetition: 0 = 신규 카드 (아직 학습 시작 안함)
+   * - nextReview: 미래 = 자동으로 due 목록에 안 뜸
+   * - ReviewSessionManager가 도입 시점에 nextReview 업데이트
    */
   private async createDefaultCardFromPath(noteId: string, path: string): Promise<ReviewCard> {
     const normalizedPath = normalizePath(path);
     const now = new Date();
 
+    // 신규 카드: 먼 미래로 설정 (9999년) - 점진적 도입 전까지 due에 안 뜸
+    const farFuture = new Date('9999-12-31');
+
     const sm2State: SM2State = {
       repetition: 0,
       interval: 0,
       easeFactor: 2.5,
-      nextReview: now,
+      nextReview: farFuture, // 도입 전까지 due에 안 뜸
     };
 
     // adapter.stat으로 파일 메타데이터 조회 (cross-platform)
@@ -454,6 +436,57 @@ export class FrontmatterReviewRepository implements IReviewRepository {
   invalidateCache(): void {
     this.cacheInitialized = false;
     this.cache.clear();
+  }
+
+  /**
+   * 신규 카드 도입 - nextReview를 오늘로 설정
+   * ReviewSessionManager가 newCardsPerDay 한도 내에서 호출
+   *
+   * @param noteId 도입할 노트 ID
+   * @returns 성공 여부
+   */
+  async introduceNewCard(noteId: string): Promise<boolean> {
+    const card = this.cache.get(noteId);
+    if (!card) return false;
+
+    // 이미 도입된 카드 (repetition > 0 또는 nextReview가 합리적인 날짜)
+    const isAlreadyIntroduced =
+      card.sm2State.repetition > 0 ||
+      card.sm2State.nextReview.getFullYear() < 9999;
+
+    if (isAlreadyIntroduced) return true;
+
+    // nextReview를 오늘로 설정하여 due 목록에 나타나게 함
+    card.sm2State.nextReview = new Date();
+    await this.saveCard(card);
+
+    return true;
+  }
+
+  /**
+   * 아직 도입되지 않은 신규 카드 조회
+   * - repetition = 0
+   * - nextReview = 9999년 (먼 미래)
+   */
+  async getUnintroducedCards(): Promise<ReviewCard[]> {
+    const allCards = await this.getAllCards();
+    return allCards.filter(
+      (card) =>
+        card.sm2State.repetition === 0 &&
+        card.sm2State.nextReview.getFullYear() === 9999
+    );
+  }
+
+  /**
+   * 도입된 카드 (학습 시작됨) 조회
+   */
+  async getIntroducedCards(): Promise<ReviewCard[]> {
+    const allCards = await this.getAllCards();
+    return allCards.filter(
+      (card) =>
+        card.sm2State.repetition > 0 ||
+        card.sm2State.nextReview.getFullYear() < 9999
+    );
   }
 
   // ===========================================================================
