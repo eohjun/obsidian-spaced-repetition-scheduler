@@ -77,8 +77,48 @@ export abstract class BaseProvider implements ILLMProvider {
       const response: RequestUrlResponse = await requestUrl(options);
       return response.json as T;
     } catch (error) {
+      // Obsidian requestUrl 에러에서 응답 본문 추출 시도
+      const errorDetail = this.extractErrorDetail(error);
+      if (errorDetail) {
+        throw { message: errorDetail, code: 'API_ERROR' } as ProviderError;
+      }
       throw this.normalizeError(error);
     }
+  }
+
+  /**
+   * API 에러 응답에서 상세 메시지 추출
+   */
+  private extractErrorDetail(error: unknown): string | null {
+    if (!error || typeof error !== 'object') return null;
+
+    const err = error as Record<string, unknown>;
+
+    // Obsidian requestUrl은 에러 시 response body를 포함할 수 있음
+    if ('response' in err && err.response) {
+      try {
+        const resp = err.response as string;
+        const parsed = JSON.parse(resp);
+        // Claude API 에러 형식
+        if (parsed.error?.message) {
+          return `API Error: ${parsed.error.message}`;
+        }
+        // OpenAI API 에러 형식
+        if (parsed.error?.message) {
+          return `API Error: ${parsed.error.message}`;
+        }
+        return JSON.stringify(parsed);
+      } catch {
+        return err.response as string;
+      }
+    }
+
+    // status와 함께 에러 메시지가 있는 경우
+    if ('status' in err && 'message' in err) {
+      return `Status ${err.status}: ${err.message}`;
+    }
+
+    return null;
   }
 
   /**
