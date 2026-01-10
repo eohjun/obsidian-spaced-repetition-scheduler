@@ -280,30 +280,47 @@ export class SRSSettingTab extends PluginSettingTab {
           });
       });
 
-    // 질문 유형
+    // 질문 유형 헤더
+    quizContainer.createEl('div', {
+      text: '질문 유형',
+      cls: 'setting-item-name',
+    });
+    quizContainer.createEl('div', {
+      text: '생성할 질문 유형을 선택하세요 (최소 1개 필요)',
+      cls: 'setting-item-description',
+    });
+
+    // 객관식
     new Setting(quizContainer)
-      .setName('질문 유형')
-      .setDesc('생성할 질문 유형 선택')
+      .setName('객관식')
+      .setDesc('4지선다 객관식 문제')
       .addToggle((toggle) => {
         toggle
           .setValue(this.plugin.settings.quiz.types.includes('multiple_choice'))
-          .setTooltip('객관식')
           .onChange(async (value) => {
             this.updateQuizTypes('multiple_choice', value);
           });
-      })
+      });
+
+    // 참/거짓
+    new Setting(quizContainer)
+      .setName('참/거짓')
+      .setDesc('참 또는 거짓을 선택하는 문제')
       .addToggle((toggle) => {
         toggle
           .setValue(this.plugin.settings.quiz.types.includes('true_false'))
-          .setTooltip('참/거짓')
           .onChange(async (value) => {
             this.updateQuizTypes('true_false', value);
           });
-      })
+      });
+
+    // 서술형
+    new Setting(quizContainer)
+      .setName('서술형')
+      .setDesc('직접 답을 작성하는 문제')
       .addToggle((toggle) => {
         toggle
           .setValue(this.plugin.settings.quiz.types.includes('open_ended'))
-          .setTooltip('서술형')
           .onChange(async (value) => {
             this.updateQuizTypes('open_ended', value);
           });

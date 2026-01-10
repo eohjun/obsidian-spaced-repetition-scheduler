@@ -1,7 +1,7 @@
 {
   "id": "spaced-repetition-scheduler",
   "name": "Spaced Repetition Scheduler",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "minAppVersion": "1.0.0",
   "description": "Spaced repetition scheduler with SM-2 algorithm, AI quiz generation, and embedding-based note grouping",
   "author": "eohjun",
