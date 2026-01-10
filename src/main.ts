@@ -292,10 +292,25 @@ export default class SRSPlugin extends Plugin {
   // ===========================================================================
 
   async startReviewSession(): Promise<void> {
-    const dueCount = await this.reviewRepository.getDueTodayCount();
+    // 세션 기반 복습 가능 여부 확인
+    const queue = this.sessionManager.getDailyQueue();
+    const remainingReviews = queue.dailyLimit - queue.reviewedCount;
+    const remainingNewCards = queue.newCardsLimit - queue.newCardsIntroduced;
 
-    if (dueCount === 0) {
-      new Notice('오늘 복습할 노트가 없습니다!');
+    // 오늘 복습할 수 있는 노트가 있는지 확인
+    const dueCount = await this.reviewRepository.getDueTodayCount();
+    const unintroducedCount = (await this.reviewRepository.getUnintroducedCards()).length;
+
+    // 복습 가능 조건: (due 카드가 있거나 도입 가능한 신규 카드가 있음) AND 일일 한도 내
+    const hasAvailableCards = (dueCount > 0 || (unintroducedCount > 0 && remainingNewCards > 0));
+    const hasRemainingSlots = remainingReviews > 0;
+
+    if (!hasAvailableCards || !hasRemainingSlots) {
+      if (!hasRemainingSlots) {
+        new Notice(`오늘 복습 한도(${queue.dailyLimit}개)를 완료했습니다!`);
+      } else {
+        new Notice('오늘 복습할 노트가 없습니다!');
+      }
       return;
     }
 
@@ -318,28 +333,39 @@ export default class SRSPlugin extends Plugin {
   }
 
   async showDueToday(): Promise<void> {
-    const cards = await this.reviewRepository.getAllCards();
-    const now = new Date();
-    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    const queue = this.sessionManager.getDailyQueue();
+    const unintroducedCards = await this.reviewRepository.getUnintroducedCards();
+    const dueCount = await this.reviewRepository.getDueTodayCount();
 
-    const dueCards = cards.filter((card) => {
-      const nextReview = new Date(card.sm2State.nextReview);
-      return nextReview <= todayEnd;
-    });
+    const remainingReviews = queue.dailyLimit - queue.reviewedCount;
+    const remainingNewCards = queue.newCardsLimit - queue.newCardsIntroduced;
 
-    if (dueCards.length === 0) {
-      new Notice('오늘 복습할 노트가 없습니다!');
+    // 오늘 복습 가능한 노트 수 계산
+    const availableDue = Math.min(dueCount, remainingReviews);
+    const availableNew = Math.min(unintroducedCards.length, remainingNewCards, remainingReviews - availableDue);
+    const totalAvailable = availableDue + availableNew;
+
+    if (totalAvailable === 0) {
+      if (remainingReviews === 0) {
+        new Notice(`오늘 복습 한도(${queue.dailyLimit}개)를 완료했습니다! 🎉`);
+      } else {
+        new Notice('오늘 복습할 노트가 없습니다!');
+      }
       return;
     }
 
-    const list = dueCards
-      .slice(0, 5)
-      .map((c) => `• ${c.noteTitle}`)
-      .join('\n');
+    const sessionInfo = queue.focusSession?.status === 'active'
+      ? `📌 포커스: ${queue.focusSession.clusterLabel}\n`
+      : '';
 
-    const more = dueCards.length > 5 ? `\n... 외 ${dueCards.length - 5}개` : '';
-
-    new Notice(`오늘 복습 (${dueCards.length}개):\n${list}${more}`, 5000);
+    new Notice(
+      `${sessionInfo}오늘 복습 현황:\n` +
+      `• 완료: ${queue.reviewedCount}/${queue.dailyLimit}\n` +
+      `• 신규 도입: ${queue.newCardsIntroduced}/${queue.newCardsLimit}\n` +
+      `• 남은 due: ${dueCount}개\n` +
+      `• 미도입 노트: ${unintroducedCards.length}개`,
+      5000
+    );
   }
 
   // ===========================================================================
