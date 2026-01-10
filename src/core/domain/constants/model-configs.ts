@@ -61,6 +61,24 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     isReasoning: false,
   },
 
+  // OpenAI Models - GPT-5.2 시리즈 (2025.12 출시)
+  'gpt-5.2': {
+    id: 'gpt-5.2',
+    displayName: 'GPT-5.2',
+    provider: 'openai',
+    maxTokens: 32768,
+    contextWindow: 400000,
+    isReasoning: false,
+  },
+  'gpt-5.2-codex': {
+    id: 'gpt-5.2-codex',
+    displayName: 'GPT-5.2 Codex',
+    provider: 'openai',
+    maxTokens: 32768,
+    contextWindow: 400000,
+    isReasoning: false,
+  },
+
   // OpenAI Models - Reasoning ⚠️ CRITICAL: temperature 미지원!
   'o3-mini': {
     id: 'o3-mini',

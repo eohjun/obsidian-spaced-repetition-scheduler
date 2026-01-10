@@ -123,6 +123,8 @@ export const PROVIDER_MODELS: Record<AIProvider, ModelOption[]> = {
     { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', description: '빠른 속도' },
   ],
   openai: [
+    { id: 'gpt-5.2', name: 'GPT-5.2', description: '최신 플래그십' },
+    { id: 'gpt-5.2-codex', name: 'GPT-5.2 Codex', description: '코딩 특화' },
     { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: '빠르고 경제적' },
     { id: 'gpt-4o', name: 'GPT-4o', description: '고품질' },
     { id: 'o3-mini', name: 'O3 Mini', description: 'Reasoning 모델' },
