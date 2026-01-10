@@ -118,6 +118,7 @@ export interface ModelOption {
 
 export const PROVIDER_MODELS: Record<AIProvider, ModelOption[]> = {
   claude: [
+    { id: 'claude-opus-4-5-20251101', name: 'Claude Opus 4.5', description: '최고 품질' },
     { id: 'claude-sonnet-4-5-20250514', name: 'Claude Sonnet 4.5', description: '고품질 균형' },
     { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', description: '빠른 속도' },
   ],
@@ -127,11 +128,12 @@ export const PROVIDER_MODELS: Record<AIProvider, ModelOption[]> = {
     { id: 'o3-mini', name: 'O3 Mini', description: 'Reasoning 모델' },
   ],
   gemini: [
-    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', description: '빠른 속도' },
-    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', description: '고품질' },
+    { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash', description: '빠른 속도' },
+    { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro', description: '최고 품질' },
+    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', description: '안정적' },
   ],
   grok: [
-    { id: 'grok-2', name: 'Grok 2', description: 'xAI 최신 모델' },
+    { id: 'grok-4-1-fast', name: 'Grok 4.1 Fast', description: 'xAI 최신 모델' },
   ],
 };
 

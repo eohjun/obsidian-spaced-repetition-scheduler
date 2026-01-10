@@ -18,19 +18,19 @@ export interface ModelConfig {
 
 export const MODEL_CONFIGS: Record<string, ModelConfig> = {
   // Claude Models
-  'claude-sonnet-4-5-20250929': {
-    id: 'claude-sonnet-4-5-20250929',
-    displayName: 'Claude Sonnet 4.5',
+  'claude-opus-4-5-20251101': {
+    id: 'claude-opus-4-5-20251101',
+    displayName: 'Claude Opus 4.5',
     provider: 'claude',
-    maxTokens: 16384,
+    maxTokens: 32768,
     contextWindow: 200000,
     isReasoning: false,
   },
-  'claude-3-5-sonnet-20241022': {
-    id: 'claude-3-5-sonnet-20241022',
-    displayName: 'Claude 3.5 Sonnet',
+  'claude-sonnet-4-5-20250514': {
+    id: 'claude-sonnet-4-5-20250514',
+    displayName: 'Claude Sonnet 4.5',
     provider: 'claude',
-    maxTokens: 8192,
+    maxTokens: 16384,
     contextWindow: 200000,
     isReasoning: false,
   },
@@ -86,16 +86,24 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     contextWindow: 128000,
     isReasoning: true,  // ⚠️ max_completion_tokens 사용, temperature 금지!
   },
-  'gpt-5.2': {
-    id: 'gpt-5.2',
-    displayName: 'GPT-5.2',
-    provider: 'openai',
-    maxTokens: 32768,
-    contextWindow: 128000,
-    isReasoning: true,  // ⚠️ max_completion_tokens 사용, temperature 금지!
-  },
 
   // Gemini Models
+  'gemini-3-flash-preview': {
+    id: 'gemini-3-flash-preview',
+    displayName: 'Gemini 3 Flash',
+    provider: 'gemini',
+    maxTokens: 8192,
+    contextWindow: 1000000,
+    isReasoning: false,
+  },
+  'gemini-3-pro-preview': {
+    id: 'gemini-3-pro-preview',
+    displayName: 'Gemini 3 Pro',
+    provider: 'gemini',
+    maxTokens: 8192,
+    contextWindow: 2000000,
+    isReasoning: false,
+  },
   'gemini-2.0-flash': {
     id: 'gemini-2.0-flash',
     displayName: 'Gemini 2.0 Flash',
@@ -104,21 +112,13 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     contextWindow: 1000000,
     isReasoning: false,
   },
-  'gemini-1.5-pro': {
-    id: 'gemini-1.5-pro',
-    displayName: 'Gemini 1.5 Pro',
-    provider: 'gemini',
-    maxTokens: 8192,
-    contextWindow: 2000000,
-    isReasoning: false,
-  },
 
   // Grok Models
-  'grok-2': {
-    id: 'grok-2',
-    displayName: 'Grok 2',
+  'grok-4-1-fast': {
+    id: 'grok-4-1-fast',
+    displayName: 'Grok 4.1 Fast',
     provider: 'grok',
-    maxTokens: 8192,
+    maxTokens: 16384,
     contextWindow: 131072,
     isReasoning: false,
   },
