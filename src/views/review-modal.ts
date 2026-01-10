@@ -7,6 +7,7 @@ import { App, Modal, TFile, MarkdownRenderer, Notice } from 'obsidian';
 import type SRSPlugin from '../main';
 import type { ReviewCard, ReviewMode, RetentionLevel } from '../core/domain/entities/review-card';
 import { SM2_QUALITY, type SM2Quality } from '../core/domain/interfaces/scheduler.interface';
+import { QuizModal } from './quiz-modal';
 
 export class ReviewModal extends Modal {
   private plugin: SRSPlugin;
@@ -295,13 +296,14 @@ export class ReviewModal extends Modal {
   private renderQualityButtons(container: HTMLElement): void {
     const btnArea = container.createEl('div', { cls: 'srs-quality-buttons' });
 
+    // 직관적인 기억 정도 선택지 (SM-2 등급 0-5에 매핑)
     const qualities = [
-      { q: SM2_QUALITY.COMPLETE_BLACKOUT, text: '😵 전혀 모름', cls: 'srs-q-0' },
-      { q: SM2_QUALITY.WRONG_REMEMBERED, text: '😟 틀림', cls: 'srs-q-1' },
-      { q: SM2_QUALITY.WRONG_EASY, text: '😐 어려움', cls: 'srs-q-2' },
-      { q: SM2_QUALITY.CORRECT_DIFFICULT, text: '🤔 힘들게 맞춤', cls: 'srs-q-3' },
-      { q: SM2_QUALITY.CORRECT_HESITATION, text: '😊 약간 고민', cls: 'srs-q-4' },
-      { q: SM2_QUALITY.PERFECT, text: '🎉 완벽!', cls: 'srs-q-5' },
+      { q: SM2_QUALITY.COMPLETE_BLACKOUT, text: '😵 기억 안남', cls: 'srs-q-0' },
+      { q: SM2_QUALITY.WRONG_REMEMBERED, text: '😟 희미함', cls: 'srs-q-1' },
+      { q: SM2_QUALITY.WRONG_EASY, text: '😐 어렴풋이', cls: 'srs-q-2' },
+      { q: SM2_QUALITY.CORRECT_DIFFICULT, text: '🤔 생각나긴 함', cls: 'srs-q-3' },
+      { q: SM2_QUALITY.CORRECT_HESITATION, text: '😊 기억남', cls: 'srs-q-4' },
+      { q: SM2_QUALITY.PERFECT, text: '🎉 완벽히 기억', cls: 'srs-q-5' },
     ];
 
     qualities.forEach(({ q, text, cls }) => {
@@ -402,9 +404,14 @@ export class ReviewModal extends Modal {
       return;
     }
 
-    // QuizModal로 전환 (Task 4.6에서 구현)
-    new Notice('퀴즈 기능은 별도 모달에서 제공됩니다.');
-    // this.close();
-    // new QuizModal(this.app, this.plugin, file).open();
+    // AI 서비스 확인
+    if (!this.plugin.settings.quiz.enabled) {
+      new Notice('퀴즈 기능이 비활성화되어 있습니다. 설정에서 활성화해주세요.');
+      return;
+    }
+
+    // QuizModal로 전환
+    this.close();
+    new QuizModal(this.app, this.plugin, file).open();
   }
 }
