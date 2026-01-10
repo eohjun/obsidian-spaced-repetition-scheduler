@@ -281,14 +281,10 @@ export class SRSSettingTab extends PluginSettingTab {
       });
 
     // 질문 유형 헤더
-    quizContainer.createEl('div', {
-      text: '질문 유형',
-      cls: 'setting-item-name',
-    });
-    quizContainer.createEl('div', {
-      text: '생성할 질문 유형을 선택하세요 (최소 1개 필요)',
-      cls: 'setting-item-description',
-    });
+    new Setting(quizContainer)
+      .setName('질문 유형')
+      .setDesc('생성할 질문 유형을 선택하세요 (최소 1개 필요)')
+      .setHeading();
 
     // 객관식
     new Setting(quizContainer)
