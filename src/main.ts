@@ -16,7 +16,6 @@ import {
   getAIService,
 } from './core/application/services/ai-service';
 import { CalloutReviewRepository } from './adapters/storage/callout-review-repository';
-import { runMigration } from './adapters/storage/srs-migration-service';
 import { VaultEmbeddingsReader } from './adapters/embeddings/vault-embeddings-reader';
 import { SM2Scheduler } from './adapters/scheduling/sm2-scheduler';
 import { CosineSimilarityClusteringService } from './adapters/clustering/cosine-similarity-clustering';
@@ -249,13 +248,6 @@ export default class SRSPlugin extends Plugin {
       id: 'show-due-today',
       name: '오늘 복습할 노트 (Due Today)',
       callback: () => this.showDueToday(),
-    });
-
-    // 마이그레이션 (frontmatter → callout)
-    this.addCommand({
-      id: 'migrate-to-callout',
-      name: 'SRS 데이터 마이그레이션 (Frontmatter → Callout)',
-      callback: () => runMigration(this.app),
     });
   }
 
