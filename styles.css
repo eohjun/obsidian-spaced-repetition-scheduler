@@ -857,3 +857,38 @@
     max-width: 400px;
   }
 }
+
+/* =============================================================================
+   Text Selection (Copy Support)
+   ============================================================================= */
+
+/* 텍스트 선택 가능 영역 */
+.srs-dashboard,
+.srs-review-modal,
+.srs-quiz-modal {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* 퀴즈 질문, 정답, 피드백 - 복사 가능 */
+.srs-quiz-question,
+.srs-feedback-text,
+.srs-correct-answer,
+.srs-your-answer,
+.srs-feedback-question,
+.srs-card-content,
+.srs-card-answer {
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+}
+
+/* 버튼, 선택 옵션 등은 선택 불가 유지 */
+.srs-quality-buttons button,
+.srs-option,
+.srs-tf-btn,
+.srs-action-btn,
+.srs-mode-toggle button {
+  user-select: none;
+  -webkit-user-select: none;
+}
