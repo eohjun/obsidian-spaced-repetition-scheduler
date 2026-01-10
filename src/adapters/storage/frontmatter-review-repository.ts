@@ -20,7 +20,7 @@
  * ---
  */
 
-import { App, TFile } from 'obsidian';
+import { App, TFile, normalizePath } from 'obsidian';
 import type {
   IReviewRepository,
   ReviewStatistics,
@@ -278,6 +278,8 @@ export class FrontmatterReviewRepository implements IReviewRepository {
    * Vault Embeddings 기반 캐시 초기화
    * - VE index의 모든 노트가 복습 대상
    * - frontmatter에 srs 없으면 기본 SM2 상태로 초기화
+   *
+   * ⚠️ Cross-platform: TFile 대신 경로 직접 사용 (iOS/Git sync 대응)
    */
   private async initializeCacheFromVE(): Promise<void> {
     if (!this.embeddingsReader) return;
@@ -288,8 +290,9 @@ export class FrontmatterReviewRepository implements IReviewRepository {
     const noteEntries = Object.entries(index.notes);
 
     for (const [noteId, entry] of noteEntries) {
-      const file = this.fileUtils.getFile(entry.path);
-      if (!file) continue;
+      // ⚠️ Cross-platform: fileExists 사용 (adapter 폴백 포함)
+      const exists = await this.fileUtils.fileExists(entry.path);
+      if (!exists) continue;
 
       const content = await this.fileUtils.readFile(entry.path);
       if (content === null) continue;
@@ -299,11 +302,11 @@ export class FrontmatterReviewRepository implements IReviewRepository {
 
       if (srsData) {
         // 기존 SM2 상태 사용
-        const card = this.toReviewCard(file, srsData);
+        const card = await this.toReviewCardFromPath(entry.path, srsData);
         this.cache.set(card.noteId, card);
       } else {
         // 새 노트: 기본 SM2 상태로 초기화 (nextReview = 오늘)
-        const card = this.createDefaultCard(noteId, file);
+        const card = await this.createDefaultCardFromPath(noteId, entry.path);
         this.cache.set(noteId, card);
       }
     }
@@ -328,7 +331,7 @@ export class FrontmatterReviewRepository implements IReviewRepository {
   }
 
   /**
-   * 기본 SM2 상태의 새 카드 생성
+   * 기본 SM2 상태의 새 카드 생성 (TFile 사용)
    */
   private createDefaultCard(noteId: string, file: TFile): ReviewCard {
     const now = new Date();
@@ -350,6 +353,98 @@ export class FrontmatterReviewRepository implements IReviewRepository {
       tags: [],
       createdAt: new Date(file.stat.ctime),
       lastModified: new Date(file.stat.mtime),
+    };
+  }
+
+  /**
+   * 기본 SM2 상태의 새 카드 생성 (경로 사용 - Cross-platform)
+   * ⚠️ adapter.stat 사용으로 iOS/Git sync 대응
+   */
+  private async createDefaultCardFromPath(noteId: string, path: string): Promise<ReviewCard> {
+    const normalizedPath = normalizePath(path);
+    const now = new Date();
+
+    const sm2State: SM2State = {
+      repetition: 0,
+      interval: 0,
+      easeFactor: 2.5,
+      nextReview: now,
+    };
+
+    // adapter.stat으로 파일 메타데이터 조회 (cross-platform)
+    let ctime = now;
+    let mtime = now;
+    try {
+      const stat = await this.app.vault.adapter.stat(normalizedPath);
+      if (stat) {
+        ctime = new Date(stat.ctime);
+        mtime = new Date(stat.mtime);
+      }
+    } catch {
+      // stat 실패 시 현재 시간 사용
+    }
+
+    // basename 추출 (경로에서)
+    const basename = normalizedPath.split('/').pop()?.replace(/\.md$/, '') || noteId;
+
+    return {
+      noteId,
+      notePath: normalizedPath,
+      noteTitle: basename,
+      sm2State,
+      retentionLevel: 'novice',
+      reviewHistory: [],
+      tags: [],
+      createdAt: ctime,
+      lastModified: mtime,
+    };
+  }
+
+  /**
+   * SRSFrontmatter를 ReviewCard로 변환 (경로 사용 - Cross-platform)
+   */
+  private async toReviewCardFromPath(path: string, srs: SRSFrontmatter): Promise<ReviewCard> {
+    const normalizedPath = normalizePath(path);
+    const sm2State: SM2State = {
+      repetition: srs.repetition,
+      interval: srs.interval,
+      easeFactor: srs.easeFactor,
+      nextReview: new Date(srs.nextReview),
+    };
+
+    const reviewHistory: ReviewRecord[] = (srs.reviewHistory || []).map((h) => ({
+      reviewedAt: new Date(h.date),
+      quality: h.quality,
+      mode: h.mode as 'quick' | 'deep' | 'quiz',
+      quizScore: h.quizScore,
+    }));
+
+    // adapter.stat으로 파일 메타데이터 조회 (cross-platform)
+    let ctime = new Date();
+    let mtime = new Date();
+    try {
+      const stat = await this.app.vault.adapter.stat(normalizedPath);
+      if (stat) {
+        ctime = new Date(stat.ctime);
+        mtime = new Date(stat.mtime);
+      }
+    } catch {
+      // stat 실패 시 현재 시간 사용
+    }
+
+    // basename 추출 (경로에서)
+    const basename = normalizedPath.split('/').pop()?.replace(/\.md$/, '') || srs.noteId;
+
+    return {
+      noteId: srs.noteId,
+      notePath: normalizedPath,
+      noteTitle: basename,
+      sm2State,
+      retentionLevel: srs.retentionLevel,
+      reviewHistory,
+      tags: [],
+      createdAt: ctime,
+      lastModified: mtime,
     };
   }
 
