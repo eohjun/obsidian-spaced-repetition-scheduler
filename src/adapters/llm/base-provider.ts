@@ -107,6 +107,11 @@ export abstract class BaseProvider implements ILLMProvider {
   protected normalizeError(error: unknown): ProviderError {
     console.error('[SRS Plugin] API Error:', error);
 
+    // 이미 ProviderError인 경우 그대로 반환
+    if (this.isProviderError(error)) {
+      return error;
+    }
+
     if (error instanceof Error) {
       const msg = error.message.toLowerCase();
 
@@ -161,7 +166,58 @@ export abstract class BaseProvider implements ILLMProvider {
       return { message: error.message, code: 'UNKNOWN' };
     }
 
+    // 객체에서 에러 정보 추출 시도
+    if (error && typeof error === 'object') {
+      const errorObj = error as Record<string, unknown>;
+      // Obsidian requestUrl 에러 형식
+      if ('status' in errorObj) {
+        const status = errorObj.status as number;
+        if (status === 401 || status === 403) {
+          return {
+            message: 'API 키가 유효하지 않습니다. 설정에서 확인해주세요.',
+            code: 'AUTH_ERROR',
+          };
+        }
+        if (status === 429) {
+          return {
+            message: 'API 요청 한도 초과. 잠시 후 다시 시도해주세요.',
+            code: 'RATE_LIMIT',
+          };
+        }
+        if (status === 402) {
+          return {
+            message: 'API 사용량 한도에 도달했습니다. 결제 정보를 확인해주세요.',
+            code: 'QUOTA_EXCEEDED',
+          };
+        }
+        if (status >= 500) {
+          return {
+            message: 'API 서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.',
+            code: 'SERVER_ERROR',
+          };
+        }
+      }
+      // 에러 메시지 필드가 있는 경우
+      if ('message' in errorObj && typeof errorObj.message === 'string') {
+        return { message: errorObj.message, code: 'UNKNOWN' };
+      }
+    }
+
     return { message: '알 수 없는 오류가 발생했습니다.', code: 'UNKNOWN' };
+  }
+
+  /**
+   * ProviderError 타입 가드
+   */
+  private isProviderError(error: unknown): error is ProviderError {
+    return (
+      error !== null &&
+      typeof error === 'object' &&
+      'message' in error &&
+      'code' in error &&
+      typeof (error as ProviderError).message === 'string' &&
+      typeof (error as ProviderError).code === 'string'
+    );
   }
 
   /**
