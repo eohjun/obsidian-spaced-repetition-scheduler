@@ -1,6 +1,6 @@
 /**
  * ReviewModal
- * 복습 세션 모달
+ * Review Session Modal
  */
 
 import { App, Modal, TFile, MarkdownRenderer, Notice } from 'obsidian';
@@ -26,7 +26,7 @@ export class ReviewModal extends Modal {
     const { contentEl } = this;
     contentEl.addClass('srs-review-modal');
 
-    // 복습 카드 로드
+    // Load review cards
     await this.loadDueCards();
 
     if (this.cards.length === 0) {
@@ -48,16 +48,16 @@ export class ReviewModal extends Modal {
   // ===========================================================================
 
   private async loadDueCards(): Promise<void> {
-    // 세션 매니저 기반 카드 선택
+    // Select cards based on session manager
     const { reviewCards, newCardsToIntroduce } = await this.plugin.selectTodayReviewCards();
 
-    // 복습 카드 + 새로 도입된 카드 합치기
+    // Combine review cards + newly introduced cards
     this.cards = [...reviewCards];
 
-    // 새로 도입된 카드들도 오늘 복습 대상에 추가 (introduceNewCard가 nextReview를 오늘로 설정함)
+    // Add newly introduced cards to today's review (introduceNewCard sets nextReview to today)
     for (const card of newCardsToIntroduce) {
       if (!this.cards.find((c) => c.noteId === card.noteId)) {
-        // 다시 로드하여 업데이트된 nextReview 반영
+        // Reload to reflect updated nextReview
         const updatedCard = await this.plugin.getReviewRepository().getCard(card.noteId);
         if (updatedCard) {
           this.cards.push(updatedCard);
@@ -65,7 +65,7 @@ export class ReviewModal extends Modal {
       }
     }
 
-    // 정착도 낮은 순으로 정렬
+    // Sort by retention level (lowest first)
     this.cards.sort((a, b) => {
       const order = { novice: 0, learning: 1, intermediate: 2, advanced: 3, mastered: 4 };
       return order[a.retentionLevel] - order[b.retentionLevel];
@@ -83,12 +83,12 @@ export class ReviewModal extends Modal {
     contentEl.createEl('div', {
       cls: 'srs-review-complete',
     }).innerHTML = `
-      <h2>🎉 복습 완료!</h2>
-      <p>오늘 복습할 노트가 없습니다.</p>
+      <h2>🎉 Review Complete!</h2>
+      <p>No notes to review today.</p>
     `;
 
     const closeBtn = contentEl.createEl('button', {
-      text: '닫기',
+      text: 'Close',
       cls: 'mod-cta',
     });
     closeBtn.onclick = () => this.close();
@@ -104,16 +104,16 @@ export class ReviewModal extends Modal {
       return;
     }
 
-    // 진행 상황
+    // Progress
     this.renderProgress(contentEl);
 
-    // 복습 모드 토글
+    // Review mode toggle
     this.renderModeToggle(contentEl);
 
-    // 카드 내용
+    // Card content
     this.renderCardContent(contentEl, card);
 
-    // 버튼 영역
+    // Button area
     if (!this.isAnswerShown) {
       this.renderShowAnswerButton(contentEl);
     } else {
@@ -128,7 +128,7 @@ export class ReviewModal extends Modal {
     const total = this.cards.length;
     const percent = Math.round((this.currentIndex / total) * 100);
 
-    // 세션 정보 가져오기
+    // Get session info
     const sessionManager = this.plugin.getSessionManager();
     const queue = sessionManager.getDailyQueue();
     const focusSession = queue.focusSession;
@@ -136,7 +136,7 @@ export class ReviewModal extends Modal {
     let sessionInfo = '';
     if (focusSession && focusSession.status === 'active') {
       const remaining = focusSession.remainingNoteIds.length;
-      sessionInfo = `<div class="srs-session-info">📌 ${focusSession.clusterLabel} (${remaining}개 남음)</div>`;
+      sessionInfo = `<div class="srs-session-info">📌 ${focusSession.clusterLabel} (${remaining} remaining)</div>`;
     }
 
     progressEl.innerHTML = `
@@ -145,7 +145,7 @@ export class ReviewModal extends Modal {
       <div class="srs-progress-bar">
         <div class="srs-progress-fill" style="width: ${percent}%"></div>
       </div>
-      <div class="srs-daily-info">오늘 복습: ${queue.reviewedCount}/${queue.dailyLimit} | 신규: ${queue.newCardsIntroduced}/${queue.newCardsLimit}</div>
+      <div class="srs-daily-info">Today: ${queue.reviewedCount}/${queue.dailyLimit} | New: ${queue.newCardsIntroduced}/${queue.newCardsLimit}</div>
     `;
   }
 
@@ -153,7 +153,7 @@ export class ReviewModal extends Modal {
     const toggleEl = container.createEl('div', { cls: 'srs-mode-toggle' });
 
     const quickBtn = toggleEl.createEl('button', {
-      text: '⚡ 빠른 복습',
+      text: '⚡ Quick Review',
       cls: this.reviewMode === 'quick' ? 'is-active' : '',
     });
     quickBtn.onclick = () => {
@@ -162,7 +162,7 @@ export class ReviewModal extends Modal {
     };
 
     const deepBtn = toggleEl.createEl('button', {
-      text: '🔍 깊은 복습',
+      text: '🔍 Deep Review',
       cls: this.reviewMode === 'deep' ? 'is-active' : '',
     });
     deepBtn.onclick = () => {
@@ -172,7 +172,7 @@ export class ReviewModal extends Modal {
 
     if (this.plugin.settings.quiz.enabled) {
       const quizBtn = toggleEl.createEl('button', {
-        text: '📝 퀴즈',
+        text: '📝 Quiz',
         cls: this.reviewMode === 'quiz' ? 'is-active' : '',
       });
       quizBtn.onclick = () => {
@@ -185,30 +185,30 @@ export class ReviewModal extends Modal {
   private async renderCardContent(container: HTMLElement, card: ReviewCard): Promise<void> {
     const cardEl = container.createEl('div', { cls: 'srs-card' });
 
-    // 헤더
+    // Header
     const headerEl = cardEl.createEl('div', { cls: 'srs-card-header' });
     headerEl.createEl('h3', { text: card.noteTitle });
     this.renderRetentionBadge(headerEl, card.retentionLevel);
 
-    // 내용
+    // Content
     const contentArea = cardEl.createEl('div', { cls: 'srs-card-content' });
 
     if (this.reviewMode === 'quick') {
-      // 빠른 복습: 제목만 표시
-      contentArea.createEl('p', { text: '이 노트를 기억하시나요?' });
+      // Quick review: show title only
+      contentArea.createEl('p', { text: 'Do you remember this note?' });
     } else {
-      // 깊은 복습: 노트 내용 일부 표시
+      // Deep review: show note content preview
       await this.renderNotePreview(contentArea, card);
     }
 
-    // 숨겨진 답변 영역
+    // Hidden answer area
     if (this.isAnswerShown) {
       const answerEl = cardEl.createEl('div', { cls: 'srs-card-answer' });
       answerEl.createEl('hr');
 
-      // 노트 열기 링크
+      // Open note link
       const linkEl = answerEl.createEl('a', {
-        text: '📄 노트 열기',
+        text: '📄 Open Note',
         cls: 'srs-note-link',
       });
       linkEl.onclick = async () => {
@@ -218,18 +218,18 @@ export class ReviewModal extends Modal {
         }
       };
 
-      // SM-2 상태 표시
+      // Display SM-2 state
       this.renderSM2Info(answerEl, card);
     }
   }
 
   private renderRetentionBadge(container: HTMLElement, level: RetentionLevel): void {
     const badges: Record<RetentionLevel, { text: string; cls: string }> = {
-      novice: { text: '🌱 초보', cls: 'srs-badge-novice' },
-      learning: { text: '📚 학습중', cls: 'srs-badge-learning' },
-      intermediate: { text: '🔄 중간', cls: 'srs-badge-intermediate' },
-      advanced: { text: '⭐ 고급', cls: 'srs-badge-advanced' },
-      mastered: { text: '🏆 마스터', cls: 'srs-badge-mastered' },
+      novice: { text: '🌱 Novice', cls: 'srs-badge-novice' },
+      learning: { text: '📚 Learning', cls: 'srs-badge-learning' },
+      intermediate: { text: '🔄 Intermediate', cls: 'srs-badge-intermediate' },
+      advanced: { text: '⭐ Advanced', cls: 'srs-badge-advanced' },
+      mastered: { text: '🏆 Mastered', cls: 'srs-badge-mastered' },
     };
 
     const badge = badges[level];
@@ -246,11 +246,11 @@ export class ReviewModal extends Modal {
 
       const content = await this.app.vault.cachedRead(file);
 
-      // 프론트매터 제거 및 첫 500자 추출
+      // Remove frontmatter and extract first 500 characters
       const bodyContent = content.replace(/^---[\s\S]*?---\n*/, '');
       const preview = bodyContent.slice(0, 500) + (bodyContent.length > 500 ? '...' : '');
 
-      // 마크다운 렌더링 (Plugin은 Component를 확장)
+      // Render markdown (Plugin extends Component)
       await MarkdownRenderer.render(
         this.app,
         preview,
@@ -259,7 +259,7 @@ export class ReviewModal extends Modal {
         this.plugin
       );
     } catch (error) {
-      container.createEl('p', { text: '노트 내용을 불러올 수 없습니다.' });
+      container.createEl('p', { text: 'Unable to load note content.' });
     }
   }
 
@@ -269,13 +269,13 @@ export class ReviewModal extends Modal {
     const { sm2State } = card;
     infoEl.innerHTML = `
       <div class="srs-sm2-stat">
-        <span>연속 성공:</span> <strong>${sm2State.repetition}회</strong>
+        <span>Consecutive Success:</span> <strong>${sm2State.repetition}</strong>
       </div>
       <div class="srs-sm2-stat">
-        <span>현재 간격:</span> <strong>${sm2State.interval}일</strong>
+        <span>Current Interval:</span> <strong>${sm2State.interval} days</strong>
       </div>
       <div class="srs-sm2-stat">
-        <span>난이도 계수:</span> <strong>${sm2State.easeFactor.toFixed(2)}</strong>
+        <span>Ease Factor:</span> <strong>${sm2State.easeFactor.toFixed(2)}</strong>
       </div>
     `;
   }
@@ -284,7 +284,7 @@ export class ReviewModal extends Modal {
     const btnArea = container.createEl('div', { cls: 'srs-button-area' });
 
     const showBtn = btnArea.createEl('button', {
-      text: '답변 보기',
+      text: 'Show Answer',
       cls: 'mod-cta srs-show-answer-btn',
     });
     showBtn.onclick = () => {
@@ -296,14 +296,14 @@ export class ReviewModal extends Modal {
   private renderQualityButtons(container: HTMLElement): void {
     const btnArea = container.createEl('div', { cls: 'srs-quality-buttons' });
 
-    // 직관적인 기억 정도 선택지 (SM-2 등급 0-5에 매핑)
+    // Intuitive recall level choices (mapped to SM-2 grades 0-5)
     const qualities = [
-      { q: SM2_QUALITY.COMPLETE_BLACKOUT, text: '😵 기억 안남', cls: 'srs-q-0' },
-      { q: SM2_QUALITY.WRONG_REMEMBERED, text: '😟 희미함', cls: 'srs-q-1' },
-      { q: SM2_QUALITY.WRONG_EASY, text: '😐 어렴풋이', cls: 'srs-q-2' },
-      { q: SM2_QUALITY.CORRECT_DIFFICULT, text: '🤔 생각나긴 함', cls: 'srs-q-3' },
-      { q: SM2_QUALITY.CORRECT_HESITATION, text: '😊 기억남', cls: 'srs-q-4' },
-      { q: SM2_QUALITY.PERFECT, text: '🎉 완벽히 기억', cls: 'srs-q-5' },
+      { q: SM2_QUALITY.COMPLETE_BLACKOUT, text: '😵 No recall', cls: 'srs-q-0' },
+      { q: SM2_QUALITY.WRONG_REMEMBERED, text: '😟 Vague', cls: 'srs-q-1' },
+      { q: SM2_QUALITY.WRONG_EASY, text: '😐 Barely', cls: 'srs-q-2' },
+      { q: SM2_QUALITY.CORRECT_DIFFICULT, text: '🤔 With effort', cls: 'srs-q-3' },
+      { q: SM2_QUALITY.CORRECT_HESITATION, text: '😊 Good', cls: 'srs-q-4' },
+      { q: SM2_QUALITY.PERFECT, text: '🎉 Perfect', cls: 'srs-q-5' },
     ];
 
     qualities.forEach(({ q, text, cls }) => {
@@ -320,40 +320,40 @@ export class ReviewModal extends Modal {
     const card = this.cards[this.currentIndex];
     if (!card) return;
 
-    // SM-2 계산
+    // SM-2 calculation
     const scheduler = this.plugin.getScheduler();
     const newState = scheduler.calculateNext(card, quality);
 
-    // 업데이트된 카드로 정착도 레벨 계산
+    // Calculate retention level with updated card
     const updatedCard = { ...card, sm2State: newState };
     const newLevel = scheduler.estimateRetentionLevel(updatedCard);
 
-    // 신규 카드 여부 확인 (repetition이 0이었으면 신규)
+    // Check if new card (repetition was 0)
     const isNewCard = card.sm2State.repetition === 0;
 
-    // 복습 기록 추가
+    // Add review history
     card.reviewHistory.push({
       reviewedAt: new Date(),
       quality,
       mode: this.reviewMode,
     });
 
-    // 카드 업데이트
+    // Update card
     card.sm2State = newState;
     card.retentionLevel = newLevel;
     card.lastModified = new Date();
 
-    // 저장
+    // Save
     await this.plugin.getReviewRepository().saveCard(card);
 
-    // 세션 매니저에 복습 완료 기록
+    // Record review completion in session manager
     const sessionManager = this.plugin.getSessionManager();
     sessionManager.markReviewed(card.noteId, isNewCard);
 
-    // 세션 데이터 저장
+    // Save session data
     await this.plugin.saveSessionData();
 
-    // 다음 카드
+    // Next card
     this.currentIndex++;
     this.isAnswerShown = false;
     this.startTime = Date.now();
@@ -374,18 +374,18 @@ export class ReviewModal extends Modal {
     contentEl.createEl('div', {
       cls: 'srs-session-complete',
     }).innerHTML = `
-      <h2>🎉 복습 세션 완료!</h2>
+      <h2>🎉 Review Session Complete!</h2>
       <div class="srs-session-stats">
         <div class="srs-stat">
           <span class="srs-stat-value">${reviewed}</span>
-          <span class="srs-stat-label">복습 완료</span>
+          <span class="srs-stat-label">Reviews Done</span>
         </div>
       </div>
-      <p>수고하셨습니다!</p>
+      <p>Great work!</p>
     `;
 
     const closeBtn = contentEl.createEl('button', {
-      text: '닫기',
+      text: 'Close',
       cls: 'mod-cta',
     });
     closeBtn.onclick = () => {
@@ -400,17 +400,17 @@ export class ReviewModal extends Modal {
 
     const file = this.app.vault.getAbstractFileByPath(card.notePath);
     if (!(file instanceof TFile)) {
-      new Notice('노트를 찾을 수 없습니다.');
+      new Notice('Note not found.');
       return;
     }
 
-    // AI 서비스 확인
+    // Check AI service
     if (!this.plugin.settings.quiz.enabled) {
-      new Notice('퀴즈 기능이 비활성화되어 있습니다. 설정에서 활성화해주세요.');
+      new Notice('Quiz feature is disabled. Please enable it in settings.');
       return;
     }
 
-    // QuizModal로 전환
+    // Switch to QuizModal
     this.close();
     new QuizModal(this.app, this.plugin, file).open();
   }

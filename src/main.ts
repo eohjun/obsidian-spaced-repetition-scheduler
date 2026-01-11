@@ -1,6 +1,6 @@
 /**
  * Spaced Repetition Scheduler Plugin
- * SM-2 알고리즘 기반 간격 반복 학습 플러그인
+ * Spaced repetition learning plugin based on SM-2 algorithm
  */
 
 import { Plugin, Notice, TFile } from 'obsidian';
@@ -33,7 +33,7 @@ import { convertToNoteClusters } from './core/application/services/cluster-adapt
 
 export { DASHBOARD_VIEW_TYPE };
 
-// 세션 데이터 저장 키
+// Session data storage key
 const SESSION_DATA_KEY = 'srs-session-data';
 
 export default class SRSPlugin extends Plugin {
@@ -52,38 +52,38 @@ export default class SRSPlugin extends Plugin {
   async onload(): Promise<void> {
     console.log('[SRS] Loading Spaced Repetition Scheduler plugin');
 
-    // 설정 로드
+    // Load settings
     await this.loadSettings();
 
-    // 서비스 초기화
+    // Initialize services
     await this.initializeServices();
 
-    // AI 서비스 초기화 (API 키가 있는 경우)
+    // Initialize AI service (if API key is configured)
     this.initializeAI();
 
-    // View 등록
+    // Register views
     this.registerViews();
 
-    // 명령어 등록
+    // Register commands
     this.registerCommands();
 
-    // 설정 탭 등록
+    // Register settings tab
     this.addSettingTab(new SRSSettingTab(this.app, this));
 
-    // 리본 아이콘 추가
+    // Add ribbon icon
     this.setupRibbonIcon();
 
-    // 이벤트 리스너 등록
+    // Register event listeners
     this.registerEvents();
 
-    // 초기 상태 업데이트
+    // Update initial state
     await this.updateBadge();
   }
 
   async onunload(): Promise<void> {
     console.log('[SRS] Unloading Spaced Repetition Scheduler plugin');
 
-    // 세션 데이터 저장
+    // Save session data
     await this.saveSessionData();
 
     resetAIService();
@@ -101,7 +101,7 @@ export default class SRSPlugin extends Plugin {
   async saveSettings(): Promise<void> {
     await this.saveData(this.settings);
 
-    // AI 서비스 설정 업데이트
+    // Update AI service settings
     this.initializeAI();
   }
 
@@ -120,10 +120,10 @@ export default class SRSPlugin extends Plugin {
     this.scheduler = new SM2Scheduler();
     this.clusteringService = new CosineSimilarityClusteringService();
 
-    // VE 연동: 자동 노트 추적
+    // VE integration: automatic note tracking
     this.reviewRepository.setEmbeddingsReader(this.embeddingsReader);
 
-    // 세션 매니저 초기화 (영속화된 데이터 로드)
+    // Initialize session manager (load persisted data)
     const persistedSession = await this.loadSessionData();
     const sessionConfig: Partial<ReviewSessionConfig> = {
       dailyLimit: this.settings.review.dailyLimit,
@@ -134,7 +134,7 @@ export default class SRSPlugin extends Plugin {
   }
 
   /**
-   * 세션 데이터 로드
+   * Load session data
    */
   private async loadSessionData(): Promise<PersistedSessionData | null> {
     try {
@@ -147,7 +147,7 @@ export default class SRSPlugin extends Plugin {
   }
 
   /**
-   * 세션 데이터 저장
+   * Save session data
    */
   async saveSessionData(): Promise<void> {
     try {
@@ -213,24 +213,24 @@ export default class SRSPlugin extends Plugin {
   // ===========================================================================
 
   private registerCommands(): void {
-    // 복습 시작
+    // Start review
     this.addCommand({
       id: 'start-review',
-      name: '복습 시작 (Start Review Session)',
+      name: 'Start Review Session',
       callback: () => this.startReviewSession(),
     });
 
-    // 대시보드 열기
+    // Open dashboard
     this.addCommand({
       id: 'open-dashboard',
-      name: '대시보드 열기 (Open Dashboard)',
+      name: 'Open Dashboard',
       callback: () => this.activateDashboard(),
     });
 
-    // 현재 노트 퀴즈
+    // Generate quiz for current note
     this.addCommand({
       id: 'generate-quiz',
-      name: '이 노트 퀴즈 생성 (Generate Quiz)',
+      name: 'Generate Quiz for This Note',
       checkCallback: (checking: boolean) => {
         const file = this.app.workspace.getActiveFile();
         if (file && file.extension === 'md') {
@@ -243,10 +243,10 @@ export default class SRSPlugin extends Plugin {
       },
     });
 
-    // 오늘 복습 목록
+    // Today's review list
     this.addCommand({
       id: 'show-due-today',
-      name: '오늘 복습할 노트 (Due Today)',
+      name: 'Show Notes Due Today',
       callback: () => this.showDueToday(),
     });
   }
@@ -264,7 +264,7 @@ export default class SRSPlugin extends Plugin {
   async updateBadge(): Promise<void> {
     if (!this.settings.notifications.showBadge || !this.ribbonEl) return;
 
-    // 세션 기반 남은 복습 수 표시
+    // Display remaining reviews based on session
     const queue = this.sessionManager.getDailyQueue();
     const remaining = queue.dailyLimit - queue.reviewedCount;
     const dueCount = Math.max(0, remaining);
@@ -283,8 +283,8 @@ export default class SRSPlugin extends Plugin {
   // ===========================================================================
 
   private registerEvents(): void {
-    // VE 기반 자동 추적으로 수동 이벤트 불필요
-    // Vault Embeddings가 노트 생성/수정을 자동 추적함
+    // Manual events not needed due to VE-based automatic tracking
+    // Vault Embeddings automatically tracks note creation/modification
   }
 
   // ===========================================================================
@@ -292,24 +292,24 @@ export default class SRSPlugin extends Plugin {
   // ===========================================================================
 
   async startReviewSession(): Promise<void> {
-    // 세션 기반 복습 가능 여부 확인
+    // Check review availability based on session
     const queue = this.sessionManager.getDailyQueue();
     const remainingReviews = queue.dailyLimit - queue.reviewedCount;
     const remainingNewCards = queue.newCardsLimit - queue.newCardsIntroduced;
 
-    // 오늘 복습할 수 있는 노트가 있는지 확인
+    // Check if there are notes available for review today
     const dueCount = await this.reviewRepository.getDueTodayCount();
     const unintroducedCount = (await this.reviewRepository.getUnintroducedCards()).length;
 
-    // 복습 가능 조건: (due 카드가 있거나 도입 가능한 신규 카드가 있음) AND 일일 한도 내
+    // Review condition: (due cards exist OR new cards can be introduced) AND within daily limit
     const hasAvailableCards = (dueCount > 0 || (unintroducedCount > 0 && remainingNewCards > 0));
     const hasRemainingSlots = remainingReviews > 0;
 
     if (!hasAvailableCards || !hasRemainingSlots) {
       if (!hasRemainingSlots) {
-        new Notice(`오늘 복습 한도(${queue.dailyLimit}개)를 완료했습니다!`);
+        new Notice(`You've completed today's review limit (${queue.dailyLimit})!`);
       } else {
-        new Notice('오늘 복습할 노트가 없습니다!');
+        new Notice('No notes to review today!');
       }
       return;
     }
@@ -319,13 +319,13 @@ export default class SRSPlugin extends Plugin {
 
   async generateQuizForNote(file: TFile): Promise<void> {
     if (!this.settings.quiz.enabled) {
-      new Notice('퀴즈 기능이 비활성화되어 있습니다. 설정에서 활성화해주세요.');
+      new Notice('Quiz feature is disabled. Please enable it in settings.');
       return;
     }
 
     const aiService = getAIService();
     if (!aiService || !aiService.hasApiKey()) {
-      new Notice('AI 서비스가 설정되지 않았습니다. 설정에서 API 키를 입력해주세요.');
+      new Notice('AI service is not configured. Please enter your API key in settings.');
       return;
     }
 
@@ -340,30 +340,30 @@ export default class SRSPlugin extends Plugin {
     const remainingReviews = queue.dailyLimit - queue.reviewedCount;
     const remainingNewCards = queue.newCardsLimit - queue.newCardsIntroduced;
 
-    // 오늘 복습 가능한 노트 수 계산
+    // Calculate notes available for review today
     const availableDue = Math.min(dueCount, remainingReviews);
     const availableNew = Math.min(unintroducedCards.length, remainingNewCards, remainingReviews - availableDue);
     const totalAvailable = availableDue + availableNew;
 
     if (totalAvailable === 0) {
       if (remainingReviews === 0) {
-        new Notice(`오늘 복습 한도(${queue.dailyLimit}개)를 완료했습니다! 🎉`);
+        new Notice(`You've completed today's review limit (${queue.dailyLimit})! 🎉`);
       } else {
-        new Notice('오늘 복습할 노트가 없습니다!');
+        new Notice('No notes to review today!');
       }
       return;
     }
 
     const sessionInfo = queue.focusSession?.status === 'active'
-      ? `📌 포커스: ${queue.focusSession.clusterLabel}\n`
+      ? `📌 Focus: ${queue.focusSession.clusterLabel}\n`
       : '';
 
     new Notice(
-      `${sessionInfo}오늘 복습 현황:\n` +
-      `• 완료: ${queue.reviewedCount}/${queue.dailyLimit}\n` +
-      `• 신규 도입: ${queue.newCardsIntroduced}/${queue.newCardsLimit}\n` +
-      `• 남은 due: ${dueCount}개\n` +
-      `• 미도입 노트: ${unintroducedCards.length}개`,
+      `${sessionInfo}Today's Review Status:\n` +
+      `• Completed: ${queue.reviewedCount}/${queue.dailyLimit}\n` +
+      `• New Cards: ${queue.newCardsIntroduced}/${queue.newCardsLimit}\n` +
+      `• Remaining Due: ${dueCount}\n` +
+      `• Unintroduced: ${unintroducedCards.length}`,
       5000
     );
   }
@@ -386,7 +386,7 @@ export default class SRSPlugin extends Plugin {
       } else if (provider === 'openai') {
         testProvider = new OpenAIProvider();
       } else {
-        // 다른 프로바이더는 나중에 구현
+        // Other providers to be implemented later
         return false;
       }
 
@@ -418,34 +418,34 @@ export default class SRSPlugin extends Plugin {
   }
 
   /**
-   * 클러스터 기반 오늘 복습할 노트 선택
-   * - 세션 매니저가 dailyLimit과 newCardsPerDay 적용
-   * - VE 클러스터링으로 관련 노트 그룹핑
+   * Select notes for today's review based on clustering
+   * - Session manager applies dailyLimit and newCardsPerDay
+   * - VE clustering groups related notes together
    */
   async selectTodayReviewCards(): Promise<{
     reviewCards: import('./core/domain/entities/review-card').ReviewCard[];
     newCardsToIntroduce: import('./core/domain/entities/review-card').ReviewCard[];
   }> {
-    // 모든 카드 로드
+    // Load all cards
     const allCards = await this.reviewRepository.getAllCards();
 
-    // VE 임베딩 기반 클러스터링
+    // VE embedding-based clustering
     const embeddings = await this.embeddingsReader.readAllEmbeddings();
 
-    // NoteEmbedding → NoteWithVector 변환
+    // Convert NoteEmbedding → NoteWithVector
     const notesWithVectors = Array.from(embeddings.values()).map((emb) => ({
       noteId: emb.noteId,
       vector: emb.vector,
     }));
 
-    // 클러스터링 수행
+    // Perform clustering
     const clusterResult = await this.clusteringService.cluster(notesWithVectors, {
       threshold: this.settings.review.similarityThreshold,
       maxGroupSize: 20,
     });
     const noteGroups = clusterResult.groups;
 
-    // NoteGroup → NoteCluster 변환
+    // Convert NoteGroup → NoteCluster
     const now = new Date();
     const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
     const dueCards = allCards.filter((card) => {
@@ -454,17 +454,17 @@ export default class SRSPlugin extends Plugin {
     });
     const clusters = convertToNoteClusters(noteGroups, dueCards);
 
-    // 세션 매니저로 오늘 복습 노트 선택
+    // Select today's review notes via session manager
     const reviewCards = this.sessionManager.selectTodayReviewNotes(allCards, clusters);
 
-    // 신규 노트 도입 선택
+    // Select new cards to introduce
     const unintroducedCards = await this.reviewRepository.getUnintroducedCards();
     const newCardsToIntroduce = this.sessionManager.selectNewCardsToIntroduce(
       unintroducedCards,
       clusters
     );
 
-    // 선택된 신규 노트 도입 (nextReview를 오늘로 설정)
+    // Introduce selected new cards (set nextReview to today)
     for (const card of newCardsToIntroduce) {
       await this.reviewRepository.introduceNewCard(card.noteId);
     }

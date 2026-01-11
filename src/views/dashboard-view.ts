@@ -1,6 +1,6 @@
 /**
  * DashboardView
- * SRS 대시보드 사이드바 뷰
+ * SRS Dashboard Sidebar View
  */
 
 import { ItemView, WorkspaceLeaf } from 'obsidian';
@@ -182,7 +182,7 @@ export class DashboardView extends ItemView {
     container.addClass('srs-dashboard');
 
     if (!this.stats) {
-      container.createEl('div', { text: '로딩 중...', cls: 'srs-loading' });
+      container.createEl('div', { text: 'Loading...', cls: 'srs-loading' });
       return;
     }
 
@@ -207,11 +207,11 @@ export class DashboardView extends ItemView {
 
   private renderHeader(container: HTMLElement): void {
     const headerEl = container.createEl('div', { cls: 'srs-dashboard-header' });
-    headerEl.createEl('h4', { text: '복습 대시보드' });
+    headerEl.createEl('h4', { text: 'Review Dashboard' });
 
     const refreshBtn = headerEl.createEl('button', {
       cls: 'srs-refresh-btn',
-      attr: { 'aria-label': '새로고침' },
+      attr: { 'aria-label': 'Refresh' },
     });
     refreshBtn.innerHTML = '🔄';
     refreshBtn.onclick = () => this.refresh();
@@ -225,7 +225,7 @@ export class DashboardView extends ItemView {
     // Streak
     if (this.stats.streakDays > 0) {
       const streakEl = statsEl.createEl('div', { cls: 'srs-streak' });
-      streakEl.innerHTML = `🔥 ${this.stats.streakDays}일 연속`;
+      streakEl.innerHTML = `🔥 ${this.stats.streakDays} day streak`;
     }
 
     // Stats grid
@@ -233,13 +233,13 @@ export class DashboardView extends ItemView {
 
     this.renderStatCard(gridEl, {
       value: this.stats.totalCards.toString(),
-      label: '전체 카드',
+      label: 'Total Cards',
       icon: '📚',
     });
 
     this.renderStatCard(gridEl, {
       value: this.stats.dueToday.toString(),
-      label: '오늘 복습',
+      label: 'Due Today',
       icon: '📅',
       highlight: this.stats.dueToday > 0,
     });
@@ -247,7 +247,7 @@ export class DashboardView extends ItemView {
     if (this.stats.overdue > 0) {
       this.renderStatCard(gridEl, {
         value: this.stats.overdue.toString(),
-        label: '지연됨',
+        label: 'Overdue',
         icon: '⚠️',
         warning: true,
       });
@@ -271,18 +271,18 @@ export class DashboardView extends ItemView {
     if (!this.stats) return;
 
     const sectionEl = container.createEl('div', { cls: 'srs-section' });
-    sectionEl.createEl('h5', { text: '복습 일정' });
+    sectionEl.createEl('h5', { text: 'Review Schedule' });
 
     const listEl = sectionEl.createEl('div', { cls: 'srs-due-list' });
 
     const items = [
-      { label: '오늘', count: this.stats.dueToday, cls: 'srs-due-today' },
-      { label: '이번 주', count: this.stats.dueThisWeek, cls: 'srs-due-week' },
+      { label: 'Today', count: this.stats.dueToday, cls: 'srs-due-today' },
+      { label: 'This Week', count: this.stats.dueThisWeek, cls: 'srs-due-week' },
     ];
 
     if (this.stats.overdue > 0) {
       items.unshift({
-        label: '지연됨',
+        label: 'Overdue',
         count: this.stats.overdue,
         cls: 'srs-due-overdue',
       });
@@ -292,7 +292,7 @@ export class DashboardView extends ItemView {
       const itemEl = listEl.createEl('div', { cls: `srs-due-item ${item.cls}` });
       itemEl.createEl('span', { text: item.label });
       itemEl.createEl('span', {
-        text: `${item.count}개`,
+        text: `${item.count}`,
         cls: 'srs-due-count',
       });
     });
@@ -302,16 +302,16 @@ export class DashboardView extends ItemView {
     if (!this.stats) return;
 
     const sectionEl = container.createEl('div', { cls: 'srs-section' });
-    sectionEl.createEl('h5', { text: '정착도 분포' });
+    sectionEl.createEl('h5', { text: 'Retention Distribution' });
 
     const chartEl = sectionEl.createEl('div', { cls: 'srs-retention-chart' });
 
     const levels: { level: RetentionLevel; emoji: string; name: string }[] = [
-      { level: 'novice', emoji: '🌱', name: '초보' },
-      { level: 'learning', emoji: '📚', name: '학습중' },
-      { level: 'intermediate', emoji: '🔄', name: '중간' },
-      { level: 'advanced', emoji: '⭐', name: '고급' },
-      { level: 'mastered', emoji: '🏆', name: '마스터' },
+      { level: 'novice', emoji: '🌱', name: 'Novice' },
+      { level: 'learning', emoji: '📚', name: 'Learning' },
+      { level: 'intermediate', emoji: '🔄', name: 'Intermediate' },
+      { level: 'advanced', emoji: '⭐', name: 'Advanced' },
+      { level: 'mastered', emoji: '🏆', name: 'Mastered' },
     ];
 
     const total = this.stats.totalCards || 1;
@@ -344,7 +344,7 @@ export class DashboardView extends ItemView {
     if (!this.stats) return;
 
     const sectionEl = container.createEl('div', { cls: 'srs-section' });
-    sectionEl.createEl('h5', { text: '최근 7일 활동' });
+    sectionEl.createEl('h5', { text: 'Last 7 Days Activity' });
 
     const chartEl = sectionEl.createEl('div', { cls: 'srs-activity-chart' });
 
@@ -363,7 +363,7 @@ export class DashboardView extends ItemView {
 
       // Day label (Mon, Tue, etc.)
       const date = new Date(review.date);
-      const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       dayEl.createEl('span', {
         text: dayNames[date.getDay()],
         cls: 'srs-activity-label',
@@ -378,11 +378,11 @@ export class DashboardView extends ItemView {
     const reviewBtn = sectionEl.createEl('button', {
       cls: 'mod-cta srs-action-btn',
     });
-    reviewBtn.innerHTML = `📝 복습 시작`;
+    reviewBtn.innerHTML = `📝 Start Review`;
     reviewBtn.onclick = () => {
       this.plugin.startReviewSession();
     };
 
-    // VE 기반 자동 추적으로 수동 등록 버튼 불필요
+    // Manual registration button not needed due to VE-based automatic tracking
   }
 }

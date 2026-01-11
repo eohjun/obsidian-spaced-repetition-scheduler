@@ -1,6 +1,6 @@
 /**
  * SRS Plugin Settings
- * 플러그인 설정 타입 및 기본값
+ * Plugin settings types and default values
  */
 
 import type { QuestionType } from '../core/domain/entities/quiz';
@@ -11,22 +11,22 @@ import type { AIProvider } from '../core/application/services/ai-service';
 // =============================================================================
 
 export interface SRSSettings {
-  // LLM 설정
+  // LLM settings
   ai: AISettings;
 
-  // 복습 설정
+  // Review settings
   review: ReviewSettings;
 
-  // 퀴즈 설정
+  // Quiz settings
   quiz: QuizSettings;
 
-  // 알림 설정
+  // Notification settings
   notifications: NotificationSettings;
 
-  // 제외 폴더
+  // Exclude folders
   excludeFolders: string[];
 
-  // 고급 설정
+  // Advanced settings
   advanced: AdvancedSettings;
 }
 
@@ -37,11 +37,11 @@ export interface AISettings {
 }
 
 export interface ReviewSettings {
-  dailyLimit: number;           // 하루 최대 복습 (기본 20)
-  newCardsPerDay: number;       // 하루 새 카드 (기본 10)
-  groupSimilar: boolean;        // 유사 노트 그룹핑 (기본 true)
-  similarityThreshold: number;  // 유사도 임계값 (기본 0.7)
-  // VE 연동으로 자동 등록 불필요 (autoRegister 제거됨)
+  dailyLimit: number;           // Max daily reviews (default 20)
+  newCardsPerDay: number;       // New cards per day (default 10)
+  groupSimilar: boolean;        // Group similar notes (default true)
+  similarityThreshold: number;  // Similarity threshold (default 0.7)
+  // Auto-registration not needed due to VE integration (autoRegister removed)
 }
 
 export interface QuizSettings {
@@ -54,14 +54,14 @@ export interface QuizSettings {
 
 export interface NotificationSettings {
   enabled: boolean;
-  reminderTime: string;         // "09:00" 형식
-  showBadge: boolean;           // 오늘 복습 수 배지 표시
+  reminderTime: string;         // "09:00" format
+  showBadge: boolean;           // Show today's review count badge
 }
 
 export interface AdvancedSettings {
   debugMode: boolean;
   cacheEmbeddings: boolean;
-  maxHistorySize: number;       // 최대 히스토리 저장 수
+  maxHistorySize: number;       // Max history entries to store
 }
 
 // =============================================================================
@@ -117,24 +117,24 @@ export interface ModelOption {
 
 export const PROVIDER_MODELS: Record<AIProvider, ModelOption[]> = {
   claude: [
-    { id: 'claude-opus-4-5-20251101', name: 'Claude Opus 4.5', description: '최고 품질' },
-    { id: 'claude-sonnet-4-5-20250514', name: 'Claude Sonnet 4.5', description: '고품질 균형' },
-    { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', description: '빠른 속도' },
+    { id: 'claude-opus-4-5-20251101', name: 'Claude Opus 4.5', description: 'Best quality' },
+    { id: 'claude-sonnet-4-5-20250514', name: 'Claude Sonnet 4.5', description: 'Balanced quality' },
+    { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', description: 'Fast' },
   ],
   openai: [
-    { id: 'gpt-5.2', name: 'GPT-5.2', description: '최신 플래그십' },
-    { id: 'gpt-5.2-codex', name: 'GPT-5.2 Codex', description: '코딩 특화' },
-    { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: '빠르고 경제적' },
-    { id: 'gpt-4o', name: 'GPT-4o', description: '고품질' },
-    { id: 'o3-mini', name: 'O3 Mini', description: 'Reasoning 모델' },
+    { id: 'gpt-5.2', name: 'GPT-5.2', description: 'Latest flagship' },
+    { id: 'gpt-5.2-codex', name: 'GPT-5.2 Codex', description: 'Coding specialized' },
+    { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Fast and economical' },
+    { id: 'gpt-4o', name: 'GPT-4o', description: 'High quality' },
+    { id: 'o3-mini', name: 'O3 Mini', description: 'Reasoning model' },
   ],
   gemini: [
-    { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash', description: '빠른 속도' },
-    { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro', description: '최고 품질' },
-    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', description: '안정적' },
+    { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash', description: 'Fast' },
+    { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro', description: 'Best quality' },
+    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', description: 'Stable' },
   ],
   grok: [
-    { id: 'grok-4-1-fast', name: 'Grok 4.1 Fast', description: 'xAI 최신 모델' },
+    { id: 'grok-4-1-fast', name: 'Grok 4.1 Fast', description: 'Latest xAI model' },
   ],
 };
 
@@ -143,30 +143,30 @@ export const PROVIDER_MODELS: Record<AIProvider, ModelOption[]> = {
 // =============================================================================
 
 /**
- * 설정 검증
+ * Validate settings
  */
 export function validateSettings(settings: SRSSettings): string[] {
   const errors: string[] = [];
 
-  // 복습 설정 검증
+  // Validate review settings
   if (settings.review.dailyLimit < 1 || settings.review.dailyLimit > 100) {
-    errors.push('일일 복습 제한은 1-100 사이여야 합니다.');
+    errors.push('Daily review limit must be between 1-100.');
   }
 
   if (settings.review.similarityThreshold < 0.5 || settings.review.similarityThreshold > 1) {
-    errors.push('유사도 임계값은 0.5-1.0 사이여야 합니다.');
+    errors.push('Similarity threshold must be between 0.5-1.0.');
   }
 
-  // 퀴즈 설정 검증
+  // Validate quiz settings
   if (settings.quiz.enabled && settings.quiz.questionCount < 1) {
-    errors.push('퀴즈 질문 수는 최소 1개 이상이어야 합니다.');
+    errors.push('Quiz question count must be at least 1.');
   }
 
-  // 알림 설정 검증
+  // Validate notification settings
   if (settings.notifications.enabled) {
     const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
     if (!timeRegex.test(settings.notifications.reminderTime)) {
-      errors.push('알림 시간 형식이 올바르지 않습니다 (HH:MM).');
+      errors.push('Reminder time format is invalid (HH:MM).');
     }
   }
 
@@ -174,7 +174,7 @@ export function validateSettings(settings: SRSSettings): string[] {
 }
 
 /**
- * 설정 마이그레이션 (버전 업그레이드 시)
+ * Migrate settings (for version upgrades)
  */
 export function migrateSettings(oldSettings: Partial<SRSSettings>): SRSSettings {
   return {

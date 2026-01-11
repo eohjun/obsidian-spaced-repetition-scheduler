@@ -1,6 +1,6 @@
 /**
  * QuizModal
- * AI 생성 퀴즈 모달
+ * AI-generated Quiz Modal
  */
 
 import { App, Modal, TFile, Notice } from 'obsidian';
@@ -58,7 +58,7 @@ export class QuizModal extends Modal {
 
     if (!this.quizGenerator) {
       this.state = 'error';
-      this.errorMessage = 'AI 서비스가 설정되지 않았습니다. 설정에서 API 키를 입력해주세요.';
+      this.errorMessage = 'AI service is not configured. Please enter your API key in settings.';
       this.render();
       return;
     }
@@ -135,7 +135,7 @@ export class QuizModal extends Modal {
       this.state = 'error';
       this.errorMessage = error instanceof Error
         ? error.message
-        : '퀴즈 생성 중 오류가 발생했습니다.';
+        : 'An error occurred while generating the quiz.';
       this.render();
     }
   }
@@ -175,9 +175,9 @@ export class QuizModal extends Modal {
 
     const loadingEl = contentEl.createEl('div', { cls: 'srs-quiz-loading' });
     loadingEl.createEl('div', { cls: 'srs-loading-spinner' });
-    loadingEl.createEl('h3', { text: '퀴즈 생성 중...' });
+    loadingEl.createEl('h3', { text: 'Generating Quiz...' });
     loadingEl.createEl('p', {
-      text: `"${this.file.basename}" 노트를 분석하고 있습니다.`
+      text: `Analyzing note "${this.file.basename}".`
     });
   }
 
@@ -188,13 +188,13 @@ export class QuizModal extends Modal {
 
     const readyEl = contentEl.createEl('div', { cls: 'srs-quiz-ready' });
 
-    readyEl.createEl('h2', { text: '퀴즈 준비 완료!' });
+    readyEl.createEl('h2', { text: 'Quiz Ready!' });
     readyEl.createEl('p', { text: `"${this.file.basename}"` });
 
     const statsEl = readyEl.createEl('div', { cls: 'srs-quiz-stats' });
     statsEl.createEl('div', { cls: 'srs-stat' }).innerHTML = `
       <span class="srs-stat-value">${this.quiz.questions.length}</span>
-      <span class="srs-stat-label">문제 수</span>
+      <span class="srs-stat-label">Questions</span>
     `;
 
     // Question type breakdown
@@ -204,14 +204,14 @@ export class QuizModal extends Modal {
     }, {} as Record<string, number>);
 
     const typeLabels: Record<string, string> = {
-      multiple_choice: '객관식',
-      true_false: '참/거짓',
-      open_ended: '서술형',
-      fill_blank: '빈칸',
+      multiple_choice: 'Multiple Choice',
+      true_false: 'True/False',
+      open_ended: 'Open Ended',
+      fill_blank: 'Fill in the Blank',
     };
 
     const typesText = Object.entries(types)
-      .map(([t, c]) => `${typeLabels[t] || t}: ${c}개`)
+      .map(([t, c]) => `${typeLabels[t] || t}: ${c}`)
       .join(', ');
 
     readyEl.createEl('p', {
@@ -220,13 +220,13 @@ export class QuizModal extends Modal {
     });
 
     const startBtn = readyEl.createEl('button', {
-      text: '시작하기',
+      text: 'Start',
       cls: 'mod-cta srs-start-btn',
     });
     startBtn.onclick = () => this.startQuiz();
 
     const cancelBtn = readyEl.createEl('button', {
-      text: '취소',
+      text: 'Cancel',
       cls: 'srs-cancel-btn',
     });
     cancelBtn.onclick = () => this.close();
@@ -264,13 +264,13 @@ export class QuizModal extends Modal {
     // Submit button
     const btnArea = contentEl.createEl('div', { cls: 'srs-button-area' });
     const submitBtn = btnArea.createEl('button', {
-      text: '제출',
+      text: 'Submit',
       cls: 'mod-cta srs-submit-btn',
     });
     submitBtn.onclick = () => this.submitAnswer();
 
     const skipBtn = btnArea.createEl('button', {
-      text: '건너뛰기',
+      text: 'Skip',
       cls: 'srs-skip-btn',
     });
     skipBtn.onclick = () => this.skipQuestion();
@@ -295,10 +295,10 @@ export class QuizModal extends Modal {
 
   private renderQuestionTypeBadge(container: HTMLElement, question: QuizQuestion): void {
     const typeLabels: Record<string, string> = {
-      multiple_choice: '객관식',
-      true_false: '참/거짓',
-      open_ended: '서술형',
-      fill_blank: '빈칸 채우기',
+      multiple_choice: 'Multiple Choice',
+      true_false: 'True/False',
+      open_ended: 'Open Ended',
+      fill_blank: 'Fill in the Blank',
     };
 
     container.createEl('span', {
@@ -309,9 +309,9 @@ export class QuizModal extends Modal {
 
   private renderDifficultyBadge(container: HTMLElement, question: QuizQuestion): void {
     const diffLabels: Record<string, string> = {
-      easy: '쉬움',
-      medium: '보통',
-      hard: '어려움',
+      easy: 'Easy',
+      medium: 'Medium',
+      hard: 'Hard',
     };
 
     container.createEl('span', {
@@ -370,21 +370,21 @@ export class QuizModal extends Modal {
     const optionsEl = container.createEl('div', { cls: 'srs-tf-options' });
 
     const trueBtn = optionsEl.createEl('button', {
-      text: '⭕ 참',
+      text: '⭕ True',
       cls: 'srs-tf-btn',
     });
     trueBtn.onclick = () => {
-      this.currentAnswer = '참';
+      this.currentAnswer = 'True';
       optionsEl.querySelectorAll('.srs-tf-btn').forEach((b) => b.removeClass('is-selected'));
       trueBtn.addClass('is-selected');
     };
 
     const falseBtn = optionsEl.createEl('button', {
-      text: '❌ 거짓',
+      text: '❌ False',
       cls: 'srs-tf-btn',
     });
     falseBtn.onclick = () => {
-      this.currentAnswer = '거짓';
+      this.currentAnswer = 'False';
       optionsEl.querySelectorAll('.srs-tf-btn').forEach((b) => b.removeClass('is-selected'));
       falseBtn.addClass('is-selected');
     };
@@ -394,7 +394,7 @@ export class QuizModal extends Modal {
     const textarea = container.createEl('textarea', {
       cls: 'srs-answer-textarea',
       attr: {
-        placeholder: '답변을 입력하세요...',
+        placeholder: 'Enter your answer...',
         rows: '4',
       },
     });
@@ -407,7 +407,7 @@ export class QuizModal extends Modal {
     const input = container.createEl('input', {
       type: 'text',
       cls: 'srs-answer-input',
-      attr: { placeholder: '빈칸에 들어갈 내용을 입력하세요...' },
+      attr: { placeholder: 'Enter what goes in the blank...' },
     });
     input.oninput = () => {
       this.currentAnswer = input.value;
@@ -442,13 +442,13 @@ export class QuizModal extends Modal {
 
     // User answer
     cardEl.createEl('div', { cls: 'srs-your-answer' }).innerHTML = `
-      <strong>당신의 답:</strong> ${this.currentAnswer || '(건너뜀)'}
+      <strong>Your answer:</strong> ${this.currentAnswer || '(Skipped)'}
     `;
 
     // Correct answer (if wrong)
     if (!this.currentResult.isCorrect) {
       cardEl.createEl('div', { cls: 'srs-correct-answer' }).innerHTML = `
-        <strong>정답:</strong> ${question.correctAnswer}
+        <strong>Correct answer:</strong> ${question.correctAnswer}
       `;
     }
 
@@ -463,14 +463,14 @@ export class QuizModal extends Modal {
       const percent = Math.round(this.currentResult.similarity * 100);
       cardEl.createEl('div', {
         cls: 'srs-similarity',
-        text: `유사도: ${percent}%`,
+        text: `Similarity: ${percent}%`,
       });
     }
 
     // Next button
     const btnArea = contentEl.createEl('div', { cls: 'srs-button-area' });
     const nextBtn = btnArea.createEl('button', {
-      text: this.currentIndex < this.quiz.questions.length - 1 ? '다음 문제' : '결과 보기',
+      text: this.currentIndex < this.quiz.questions.length - 1 ? 'Next Question' : 'View Results',
       cls: 'mod-cta',
     });
     nextBtn.onclick = () => this.nextQuestion();
@@ -491,7 +491,7 @@ export class QuizModal extends Modal {
     const scoreEl = resultEl.createEl('div', { cls: 'srs-result-score' });
     scoreEl.createEl('div', {
       cls: 'srs-score-value',
-      text: `${score}점`,
+      text: `${score} pts`,
     });
     scoreEl.createEl('div', {
       cls: 'srs-score-label',
@@ -507,15 +507,15 @@ export class QuizModal extends Modal {
     statsEl.innerHTML = `
       <div class="srs-stat">
         <span class="srs-stat-value">${correctCount}/${totalQuestions}</span>
-        <span class="srs-stat-label">정답</span>
+        <span class="srs-stat-label">Correct</span>
       </div>
       <div class="srs-stat">
         <span class="srs-stat-value">${this.formatTime(totalTime)}</span>
-        <span class="srs-stat-label">소요 시간</span>
+        <span class="srs-stat-label">Time</span>
       </div>
       <div class="srs-stat">
         <span class="srs-stat-value">${quality}</span>
-        <span class="srs-stat-label">SM-2 점수</span>
+        <span class="srs-stat-label">SM-2 Score</span>
       </div>
     `;
 
@@ -526,13 +526,13 @@ export class QuizModal extends Modal {
     const btnArea = resultEl.createEl('div', { cls: 'srs-button-area' });
 
     const applyBtn = btnArea.createEl('button', {
-      text: '복습 기록에 반영',
+      text: 'Apply to Review Record',
       cls: 'mod-cta',
     });
     applyBtn.onclick = () => this.applyResultToReview(quality as SM2Quality);
 
     const closeBtn = btnArea.createEl('button', {
-      text: '닫기',
+      text: 'Close',
     });
     closeBtn.onclick = () => this.close();
   }
@@ -541,7 +541,7 @@ export class QuizModal extends Modal {
     if (!this.quiz) return;
 
     const breakdownEl = container.createEl('div', { cls: 'srs-answer-breakdown' });
-    breakdownEl.createEl('h4', { text: '문제별 결과' });
+    breakdownEl.createEl('h4', { text: 'Question-by-Question Results' });
 
     const listEl = breakdownEl.createEl('div', { cls: 'srs-breakdown-list' });
 
@@ -556,7 +556,7 @@ export class QuizModal extends Modal {
       itemEl.innerHTML = `
         <span class="srs-breakdown-icon">${answer.isCorrect ? '✅' : '❌'}</span>
         <span class="srs-breakdown-text">${this.truncate(question.question, 40)}</span>
-        <span class="srs-breakdown-time">${answer.timeTaken}초</span>
+        <span class="srs-breakdown-time">${answer.timeTaken}s</span>
       `;
     });
   }
@@ -566,13 +566,13 @@ export class QuizModal extends Modal {
 
     const errorEl = contentEl.createEl('div', { cls: 'srs-quiz-error' });
     errorEl.createEl('div', { cls: 'srs-error-icon', text: '⚠️' });
-    errorEl.createEl('h3', { text: '오류 발생' });
+    errorEl.createEl('h3', { text: 'Error Occurred' });
     errorEl.createEl('p', { text: this.errorMessage });
 
     const btnArea = errorEl.createEl('div', { cls: 'srs-button-area' });
 
     const retryBtn = btnArea.createEl('button', {
-      text: '다시 시도',
+      text: 'Retry',
       cls: 'mod-cta',
     });
     retryBtn.onclick = async () => {
@@ -582,7 +582,7 @@ export class QuizModal extends Modal {
     };
 
     const closeBtn = btnArea.createEl('button', {
-      text: '닫기',
+      text: 'Close',
     });
     closeBtn.onclick = () => this.close();
   }
@@ -638,7 +638,7 @@ export class QuizModal extends Modal {
 
     this.currentResult = {
       isCorrect: false,
-      feedback: '건너뛰었습니다.',
+      feedback: 'Skipped.',
       correctAnswer: question.correctAnswer,
     };
 
@@ -670,7 +670,7 @@ export class QuizModal extends Modal {
       const card = await repository.getCard(noteId);
 
       if (!card) {
-        new Notice('복습 카드를 찾을 수 없습니다. 먼저 노트를 복습 대상으로 등록해주세요.');
+        new Notice('Review card not found. Please register the note for review first.');
         this.close();
         return;
       }
@@ -696,12 +696,12 @@ export class QuizModal extends Modal {
 
       await repository.saveCard(card);
 
-      new Notice(`퀴즈 결과가 반영되었습니다! 다음 복습: ${newState.interval}일 후`);
+      new Notice(`Quiz results applied! Next review: in ${newState.interval} days`);
       this.plugin.updateBadge();
       this.close();
     } catch (error) {
       console.error('[SRS] Failed to apply quiz result:', error);
-      new Notice('결과 반영 중 오류가 발생했습니다.');
+      new Notice('An error occurred while applying the results.');
     }
   }
 
@@ -710,20 +710,20 @@ export class QuizModal extends Modal {
   // ===========================================================================
 
   private getScoreLabel(score: number): string {
-    if (score >= 90) return '완벽해요! 🎉';
-    if (score >= 75) return '잘했어요! 👏';
-    if (score >= 60) return '괜찮아요! 👍';
-    if (score >= 40) return '더 노력해봐요! 💪';
-    return '다시 복습해보세요! 📚';
+    if (score >= 90) return 'Perfect! 🎉';
+    if (score >= 75) return 'Great job! 👏';
+    if (score >= 60) return 'Not bad! 👍';
+    if (score >= 40) return 'Keep trying! 💪';
+    return 'Review again! 📚';
   }
 
   private formatTime(seconds: number): string {
     if (seconds < 60) {
-      return `${seconds}초`;
+      return `${seconds}s`;
     }
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}분 ${secs}초`;
+    return `${mins}m ${secs}s`;
   }
 
   private truncate(text: string, maxLength: number): string {

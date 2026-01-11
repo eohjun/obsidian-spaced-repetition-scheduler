@@ -1,6 +1,6 @@
 /**
  * SRS Settings Tab
- * 섹션화된 설정 UI
+ * Sectioned settings UI
  */
 
 import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
@@ -22,14 +22,14 @@ export class SRSSettingTab extends PluginSettingTab {
     containerEl.empty();
     containerEl.addClass('srs-settings');
 
-    // 헤더
+    // Header
     containerEl.createEl('h1', { text: 'Spaced Repetition Scheduler' });
     containerEl.createEl('p', {
-      text: 'SM-2 알고리즘 기반 간격 반복 학습 시스템',
+      text: 'Spaced repetition learning system based on SM-2 algorithm',
       cls: 'setting-item-description',
     });
 
-    // 섹션 렌더링
+    // Render sections
     this.renderAISection(containerEl);
     this.renderReviewSection(containerEl);
     this.renderQuizSection(containerEl);
@@ -42,14 +42,14 @@ export class SRSSettingTab extends PluginSettingTab {
   // ===========================================================================
 
   private renderAISection(containerEl: HTMLElement): void {
-    containerEl.createEl('h2', { text: 'AI 설정' });
+    containerEl.createEl('h2', { text: 'AI Settings' });
 
     const aiContainer = containerEl.createDiv('srs-settings-section');
 
-    // Provider 선택
+    // Provider selection
     new Setting(aiContainer)
       .setName('LLM Provider')
-      .setDesc('퀴즈 생성에 사용할 AI 서비스')
+      .setDesc('AI service to use for quiz generation')
       .addDropdown((dropdown) => {
         dropdown
           .addOption('openai', 'OpenAI')
@@ -59,13 +59,13 @@ export class SRSSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.ai.provider)
           .onChange(async (value) => {
             this.plugin.settings.ai.provider = value as AIProvider;
-            // 기본 모델로 변경
+            // Change to default model
             const models = PROVIDER_MODELS[value as AIProvider];
             if (models && models.length > 0) {
               this.plugin.settings.ai.model = models[0].id;
             }
             await this.plugin.saveSettings();
-            this.display(); // UI 새로고침
+            this.display(); // Refresh UI
           });
       });
 
@@ -75,7 +75,7 @@ export class SRSSettingTab extends PluginSettingTab {
 
     new Setting(aiContainer)
       .setName(`${apiKeyName} API Key`)
-      .setDesc(`${apiKeyName} API 키를 입력하세요`)
+      .setDesc(`Enter your ${apiKeyName} API key`)
       .addText((text) => {
         text
           .setPlaceholder('sk-...')
@@ -89,17 +89,17 @@ export class SRSSettingTab extends PluginSettingTab {
       .addExtraButton((button) => {
         button
           .setIcon('external-link')
-          .setTooltip(`${apiKeyName} API 키 발급`)
+          .setTooltip(`Get ${apiKeyName} API key`)
           .onClick(() => {
             window.open(this.getProviderApiUrl(provider), '_blank');
           });
       });
 
-    // Model 선택
+    // Model selection
     const models = PROVIDER_MODELS[provider] || [];
     new Setting(aiContainer)
-      .setName('모델')
-      .setDesc('사용할 AI 모델')
+      .setName('Model')
+      .setDesc('AI model to use')
       .addDropdown((dropdown) => {
         models.forEach((model) => {
           dropdown.addOption(model.id, `${model.name}${model.description ? ` - ${model.description}` : ''}`);
@@ -112,30 +112,30 @@ export class SRSSettingTab extends PluginSettingTab {
           });
       });
 
-    // API 테스트 버튼
+    // API test button
     new Setting(aiContainer)
-      .setName('API 연결 테스트')
-      .setDesc('API 키가 올바른지 확인합니다')
+      .setName('Test API Connection')
+      .setDesc('Verify that your API key is valid')
       .addButton((button) => {
         button
-          .setButtonText('테스트')
+          .setButtonText('Test')
           .onClick(async () => {
             button.setDisabled(true);
-            button.setButtonText('테스트 중...');
+            button.setButtonText('Testing...');
 
             try {
               const success = await this.plugin.testApiConnection();
               if (success) {
-                new Notice('API 연결 성공!');
+                new Notice('API connection successful!');
               } else {
-                new Notice('API 연결 실패. 키를 확인해주세요.');
+                new Notice('API connection failed. Please check your key.');
               }
             } catch (error) {
-              new Notice(`오류: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+              new Notice(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
             }
 
             button.setDisabled(false);
-            button.setButtonText('테스트');
+            button.setButtonText('Test');
           });
       });
   }
@@ -145,14 +145,14 @@ export class SRSSettingTab extends PluginSettingTab {
   // ===========================================================================
 
   private renderReviewSection(containerEl: HTMLElement): void {
-    containerEl.createEl('h2', { text: '복습 설정' });
+    containerEl.createEl('h2', { text: 'Review Settings' });
 
     const reviewContainer = containerEl.createDiv('srs-settings-section');
 
-    // 일일 복습 제한
+    // Daily review limit
     new Setting(reviewContainer)
-      .setName('일일 복습 제한')
-      .setDesc('하루에 복습할 최대 카드 수')
+      .setName('Daily Review Limit')
+      .setDesc('Maximum number of cards to review per day')
       .addSlider((slider) => {
         slider
           .setLimits(5, 100, 5)
@@ -164,10 +164,10 @@ export class SRSSettingTab extends PluginSettingTab {
           });
       });
 
-    // 새 카드 제한
+    // New cards limit
     new Setting(reviewContainer)
-      .setName('일일 새 카드')
-      .setDesc('하루에 등록할 새 카드 수')
+      .setName('Daily New Cards')
+      .setDesc('Number of new cards to introduce per day')
       .addSlider((slider) => {
         slider
           .setLimits(1, 50, 1)
@@ -179,10 +179,10 @@ export class SRSSettingTab extends PluginSettingTab {
           });
       });
 
-    // 유사 노트 그룹핑
+    // Similar notes grouping
     new Setting(reviewContainer)
-      .setName('유사 노트 그룹핑')
-      .setDesc('임베딩 기반으로 유사한 노트를 함께 복습 (Vault Embeddings 필요)')
+      .setName('Group Similar Notes')
+      .setDesc('Review similar notes together based on embeddings (requires Vault Embeddings)')
       .addToggle((toggle) => {
         toggle
           .setValue(this.plugin.settings.review.groupSimilar)
@@ -192,11 +192,11 @@ export class SRSSettingTab extends PluginSettingTab {
           });
       });
 
-    // 유사도 임계값
+    // Similarity threshold
     if (this.plugin.settings.review.groupSimilar) {
       new Setting(reviewContainer)
-        .setName('유사도 임계값')
-        .setDesc('그룹핑에 필요한 최소 유사도 (0.5 ~ 1.0)')
+        .setName('Similarity Threshold')
+        .setDesc('Minimum similarity required for grouping (0.5 - 1.0)')
         .addSlider((slider) => {
           slider
             .setLimits(0.5, 1.0, 0.05)
@@ -209,12 +209,12 @@ export class SRSSettingTab extends PluginSettingTab {
         });
     }
 
-    // VE 연동으로 자동 등록 불필요 (Vault Embeddings가 모든 노트를 자동 추적)
+    // Automatic registration not needed due to VE integration (Vault Embeddings automatically tracks all notes)
 
-    // 제외 폴더
+    // Exclude folders
     new Setting(reviewContainer)
-      .setName('제외 폴더')
-      .setDesc('복습에서 제외할 폴더 (쉼표로 구분)')
+      .setName('Exclude Folders')
+      .setDesc('Folders to exclude from review (comma-separated)')
       .addText((text) => {
         text
           .setPlaceholder('templates, attachments')
@@ -234,14 +234,14 @@ export class SRSSettingTab extends PluginSettingTab {
   // ===========================================================================
 
   private renderQuizSection(containerEl: HTMLElement): void {
-    containerEl.createEl('h2', { text: '퀴즈 설정' });
+    containerEl.createEl('h2', { text: 'Quiz Settings' });
 
     const quizContainer = containerEl.createDiv('srs-settings-section');
 
-    // 퀴즈 활성화
+    // Enable quiz
     new Setting(quizContainer)
-      .setName('퀴즈 활성화')
-      .setDesc('AI 생성 퀴즈로 깊은 복습 모드 활성화')
+      .setName('Enable Quiz')
+      .setDesc('Enable deep review mode with AI-generated quizzes')
       .addToggle((toggle) => {
         toggle
           .setValue(this.plugin.settings.quiz.enabled)
@@ -254,10 +254,10 @@ export class SRSSettingTab extends PluginSettingTab {
 
     if (!this.plugin.settings.quiz.enabled) return;
 
-    // 질문 수
+    // Question count
     new Setting(quizContainer)
-      .setName('질문 수')
-      .setDesc('노트당 생성할 퀴즈 질문 수')
+      .setName('Question Count')
+      .setDesc('Number of quiz questions to generate per note')
       .addSlider((slider) => {
         slider
           .setLimits(1, 10, 1)
@@ -269,16 +269,16 @@ export class SRSSettingTab extends PluginSettingTab {
           });
       });
 
-    // 질문 유형 헤더
+    // Question types header
     new Setting(quizContainer)
-      .setName('질문 유형')
-      .setDesc('생성할 질문 유형을 선택하세요 (최소 1개 필요)')
+      .setName('Question Types')
+      .setDesc('Select the types of questions to generate (at least 1 required)')
       .setHeading();
 
-    // 객관식
+    // Multiple choice
     new Setting(quizContainer)
-      .setName('객관식')
-      .setDesc('4지선다 객관식 문제')
+      .setName('Multiple Choice')
+      .setDesc('4-option multiple choice questions')
       .addToggle((toggle) => {
         toggle
           .setValue(this.plugin.settings.quiz.types.includes('multiple_choice'))
@@ -287,10 +287,10 @@ export class SRSSettingTab extends PluginSettingTab {
           });
       });
 
-    // 참/거짓
+    // True/False
     new Setting(quizContainer)
-      .setName('참/거짓')
-      .setDesc('참 또는 거짓을 선택하는 문제')
+      .setName('True/False')
+      .setDesc('Questions to select true or false')
       .addToggle((toggle) => {
         toggle
           .setValue(this.plugin.settings.quiz.types.includes('true_false'))
@@ -299,10 +299,10 @@ export class SRSSettingTab extends PluginSettingTab {
           });
       });
 
-    // 서술형
+    // Open-ended
     new Setting(quizContainer)
-      .setName('서술형')
-      .setDesc('직접 답을 작성하는 문제')
+      .setName('Open-ended')
+      .setDesc('Questions requiring written answers')
       .addToggle((toggle) => {
         toggle
           .setValue(this.plugin.settings.quiz.types.includes('open_ended'))
@@ -311,13 +311,13 @@ export class SRSSettingTab extends PluginSettingTab {
           });
       });
 
-    // 언어
+    // Language
     new Setting(quizContainer)
-      .setName('언어')
-      .setDesc('퀴즈 생성 언어')
+      .setName('Language')
+      .setDesc('Language for quiz generation')
       .addDropdown((dropdown) => {
         dropdown
-          .addOption('ko', '한국어')
+          .addOption('ko', 'Korean')
           .addOption('en', 'English')
           .setValue(this.plugin.settings.quiz.language)
           .onChange(async (value) => {
@@ -326,16 +326,16 @@ export class SRSSettingTab extends PluginSettingTab {
           });
       });
 
-    // 난이도
+    // Difficulty
     new Setting(quizContainer)
-      .setName('난이도')
-      .setDesc('퀴즈 난이도')
+      .setName('Difficulty')
+      .setDesc('Quiz difficulty level')
       .addDropdown((dropdown) => {
         dropdown
-          .addOption('easy', '쉬움')
-          .addOption('medium', '중간')
-          .addOption('hard', '어려움')
-          .addOption('mixed', '혼합')
+          .addOption('easy', 'Easy')
+          .addOption('medium', 'Medium')
+          .addOption('hard', 'Hard')
+          .addOption('mixed', 'Mixed')
           .setValue(this.plugin.settings.quiz.difficulty)
           .onChange(async (value) => {
             this.plugin.settings.quiz.difficulty = value as 'easy' | 'medium' | 'hard' | 'mixed';
@@ -349,14 +349,14 @@ export class SRSSettingTab extends PluginSettingTab {
   // ===========================================================================
 
   private renderNotificationSection(containerEl: HTMLElement): void {
-    containerEl.createEl('h2', { text: '알림 설정' });
+    containerEl.createEl('h2', { text: 'Notification Settings' });
 
     const notifContainer = containerEl.createDiv('srs-settings-section');
 
-    // 알림 활성화
+    // Enable notifications
     new Setting(notifContainer)
-      .setName('알림 활성화')
-      .setDesc('복습 알림 받기')
+      .setName('Enable Notifications')
+      .setDesc('Receive review reminders')
       .addToggle((toggle) => {
         toggle
           .setValue(this.plugin.settings.notifications.enabled)
@@ -369,10 +369,10 @@ export class SRSSettingTab extends PluginSettingTab {
 
     if (!this.plugin.settings.notifications.enabled) return;
 
-    // 알림 시간
+    // Reminder time
     new Setting(notifContainer)
-      .setName('알림 시간')
-      .setDesc('복습 알림을 받을 시간 (HH:MM)')
+      .setName('Reminder Time')
+      .setDesc('Time to receive review reminders (HH:MM)')
       .addText((text) => {
         text
           .setPlaceholder('09:00')
@@ -386,10 +386,10 @@ export class SRSSettingTab extends PluginSettingTab {
           });
       });
 
-    // 배지 표시
+    // Show badge
     new Setting(notifContainer)
-      .setName('배지 표시')
-      .setDesc('리본 아이콘에 오늘 복습 수 표시')
+      .setName('Show Badge')
+      .setDesc('Show today\'s review count on the ribbon icon')
       .addToggle((toggle) => {
         toggle
           .setValue(this.plugin.settings.notifications.showBadge)
@@ -405,14 +405,14 @@ export class SRSSettingTab extends PluginSettingTab {
   // ===========================================================================
 
   private renderAdvancedSection(containerEl: HTMLElement): void {
-    containerEl.createEl('h2', { text: '고급 설정' });
+    containerEl.createEl('h2', { text: 'Advanced Settings' });
 
     const advContainer = containerEl.createDiv('srs-settings-section');
 
-    // 디버그 모드
+    // Debug mode
     new Setting(advContainer)
-      .setName('디버그 모드')
-      .setDesc('콘솔에 상세 로그 출력')
+      .setName('Debug Mode')
+      .setDesc('Output detailed logs to console')
       .addToggle((toggle) => {
         toggle
           .setValue(this.plugin.settings.advanced.debugMode)
@@ -422,10 +422,10 @@ export class SRSSettingTab extends PluginSettingTab {
           });
       });
 
-    // 임베딩 캐시
+    // Embedding cache
     new Setting(advContainer)
-      .setName('임베딩 캐시')
-      .setDesc('임베딩 데이터를 메모리에 캐시하여 성능 향상')
+      .setName('Embedding Cache')
+      .setDesc('Cache embedding data in memory for improved performance')
       .addToggle((toggle) => {
         toggle
           .setValue(this.plugin.settings.advanced.cacheEmbeddings)
@@ -435,10 +435,10 @@ export class SRSSettingTab extends PluginSettingTab {
           });
       });
 
-    // 히스토리 크기
+    // History size
     new Setting(advContainer)
-      .setName('히스토리 크기')
-      .setDesc('노트당 저장할 최대 복습 기록 수')
+      .setName('History Size')
+      .setDesc('Maximum number of review records to store per note')
       .addSlider((slider) => {
         slider
           .setLimits(10, 100, 10)
@@ -450,17 +450,17 @@ export class SRSSettingTab extends PluginSettingTab {
           });
       });
 
-    // 설정 초기화
+    // Reset settings
     new Setting(advContainer)
-      .setName('설정 초기화')
-      .setDesc('모든 설정을 기본값으로 되돌립니다')
+      .setName('Reset Settings')
+      .setDesc('Reset all settings to default values')
       .addButton((button) => {
         button
-          .setButtonText('초기화')
+          .setButtonText('Reset')
           .setWarning()
           .onClick(async () => {
             await this.plugin.resetSettings();
-            new Notice('설정이 초기화되었습니다.');
+            new Notice('Settings have been reset.');
             this.display();
           });
       });
@@ -499,7 +499,7 @@ export class SRSSettingTab extends PluginSettingTab {
       types.delete(type);
     }
 
-    // 최소 하나는 선택되어야 함
+    // At least one must be selected
     if (types.size === 0) {
       types.add('multiple_choice');
     }
