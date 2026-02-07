@@ -429,8 +429,25 @@ export default class SRSPlugin extends Plugin {
     // Load all cards
     const allCards = await this.reviewRepository.getAllCards();
 
-    // VE embedding-based clustering
-    const embeddings = await this.embeddingsReader.readAllEmbeddings();
+    // Collect noteIds of due + unintroduced cards for targeted embedding loading
+    const now = new Date();
+    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    const relevantNoteIds = new Set<string>();
+    for (const card of allCards) {
+      const nextReview = new Date(card.sm2State.nextReview);
+      if (nextReview <= todayEnd) {
+        relevantNoteIds.add(card.noteId);
+      }
+    }
+    const unintroducedCards = await this.reviewRepository.getUnintroducedCards();
+    for (const card of unintroducedCards) {
+      relevantNoteIds.add(card.noteId);
+    }
+
+    // VE embedding-based clustering — load only relevant embeddings
+    const embeddings = await this.embeddingsReader.readEmbeddingsBatch(
+      Array.from(relevantNoteIds)
+    );
 
     // Convert NoteEmbedding → NoteWithVector
     const notesWithVectors = Array.from(embeddings.values()).map((emb) => ({
@@ -446,8 +463,6 @@ export default class SRSPlugin extends Plugin {
     const noteGroups = clusterResult.groups;
 
     // Convert NoteGroup → NoteCluster
-    const now = new Date();
-    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
     const dueCards = allCards.filter((card) => {
       const nextReview = new Date(card.sm2State.nextReview);
       return nextReview <= todayEnd;
@@ -458,7 +473,6 @@ export default class SRSPlugin extends Plugin {
     const reviewCards = this.sessionManager.selectTodayReviewNotes(allCards, clusters);
 
     // Select new cards to introduce
-    const unintroducedCards = await this.reviewRepository.getUnintroducedCards();
     const newCardsToIntroduce = this.sessionManager.selectNewCardsToIntroduce(
       unintroducedCards,
       clusters

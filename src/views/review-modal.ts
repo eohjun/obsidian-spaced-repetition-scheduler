@@ -25,6 +25,25 @@ export class ReviewModal extends Modal {
   async onOpen(): Promise<void> {
     const { contentEl } = this;
     contentEl.addClass('srs-review-modal');
+    contentEl.setAttribute('aria-label', 'Spaced Repetition Review Session');
+
+    // Keyboard shortcuts for review
+    this.scope.register([], ' ', (e) => {
+      if (!this.isAnswerShown) {
+        e.preventDefault();
+        this.isAnswerShown = true;
+        this.renderCard();
+      }
+    });
+    // Number keys 1-6 for quality rating when answer is shown
+    for (let i = 0; i <= 5; i++) {
+      this.scope.register([], String(i + 1), (e) => {
+        if (this.isAnswerShown) {
+          e.preventDefault();
+          this.handleQualityResponse(i as SM2Quality);
+        }
+      });
+    }
 
     // Load review cards
     await this.loadDueCards();
@@ -139,10 +158,12 @@ export class ReviewModal extends Modal {
       sessionInfo = `<div class="srs-session-info">📌 ${focusSession.clusterLabel} (${remaining} remaining)</div>`;
     }
 
+    progressEl.setAttribute('aria-live', 'polite');
+    progressEl.setAttribute('aria-label', `Review progress: ${current} of ${total}`);
     progressEl.innerHTML = `
       ${sessionInfo}
       <div class="srs-progress-text">${current} / ${total}</div>
-      <div class="srs-progress-bar">
+      <div class="srs-progress-bar" role="progressbar" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100">
         <div class="srs-progress-fill" style="width: ${percent}%"></div>
       </div>
       <div class="srs-daily-info">Today: ${queue.reviewedCount}/${queue.dailyLimit} | New: ${queue.newCardsIntroduced}/${queue.newCardsLimit}</div>
@@ -284,8 +305,9 @@ export class ReviewModal extends Modal {
     const btnArea = container.createEl('div', { cls: 'srs-button-area' });
 
     const showBtn = btnArea.createEl('button', {
-      text: 'Show Answer',
+      text: 'Show Answer (Space)',
       cls: 'mod-cta srs-show-answer-btn',
+      attr: { 'aria-label': 'Show answer — press Space' },
     });
     showBtn.onclick = () => {
       this.isAnswerShown = true;
@@ -306,8 +328,12 @@ export class ReviewModal extends Modal {
       { q: SM2_QUALITY.PERFECT, text: '🎉 Perfect', cls: 'srs-q-5' },
     ];
 
-    qualities.forEach(({ q, text, cls }) => {
-      const btn = btnArea.createEl('button', { text, cls });
+    qualities.forEach(({ q, text, cls }, index) => {
+      const btn = btnArea.createEl('button', {
+        text: `${text} (${index + 1})`,
+        cls,
+        attr: { 'aria-label': `${text} — press ${index + 1}` },
+      });
       btn.onclick = () => this.handleQualityResponse(q);
     });
   }

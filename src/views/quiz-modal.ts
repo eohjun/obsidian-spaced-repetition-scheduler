@@ -52,6 +52,7 @@ export class QuizModal extends Modal {
   async onOpen(): Promise<void> {
     const { contentEl } = this;
     contentEl.addClass('srs-quiz-modal');
+    contentEl.setAttribute('aria-label', 'Quiz Session');
 
     // Initialize quiz generator
     this.initializeQuizGenerator();
@@ -285,9 +286,11 @@ export class QuizModal extends Modal {
     const total = this.quiz.questions.length;
     const percent = Math.round((this.currentIndex / total) * 100);
 
+    progressEl.setAttribute('aria-live', 'polite');
+    progressEl.setAttribute('aria-label', `Quiz progress: ${current} of ${total}`);
     progressEl.innerHTML = `
       <div class="srs-progress-text">${current} / ${total}</div>
-      <div class="srs-progress-bar">
+      <div class="srs-progress-bar" role="progressbar" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100">
         <div class="srs-progress-fill" style="width: ${percent}%"></div>
       </div>
     `;
@@ -342,14 +345,14 @@ export class QuizModal extends Modal {
   private renderMultipleChoice(container: HTMLElement, question: QuizQuestion): void {
     if (!question.options) return;
 
-    const optionsEl = container.createEl('div', { cls: 'srs-options' });
+    const optionsEl = container.createEl('div', { cls: 'srs-options', attr: { role: 'radiogroup', 'aria-label': 'Answer choices' } });
 
     question.options.forEach((option, index) => {
       const optionEl = optionsEl.createEl('label', { cls: 'srs-option' });
 
       const radio = optionEl.createEl('input', {
         type: 'radio',
-        attr: { name: 'quiz-option', value: option },
+        attr: { name: 'quiz-option', value: option, 'aria-label': `Option ${String.fromCharCode(65 + index)}: ${option}` },
       });
       radio.onchange = () => {
         this.currentAnswer = option;
@@ -372,6 +375,7 @@ export class QuizModal extends Modal {
     const trueBtn = optionsEl.createEl('button', {
       text: '⭕ True',
       cls: 'srs-tf-btn',
+      attr: { 'aria-label': 'Answer: True' },
     });
     trueBtn.onclick = () => {
       this.currentAnswer = 'True';
@@ -382,6 +386,7 @@ export class QuizModal extends Modal {
     const falseBtn = optionsEl.createEl('button', {
       text: '❌ False',
       cls: 'srs-tf-btn',
+      attr: { 'aria-label': 'Answer: False' },
     });
     falseBtn.onclick = () => {
       this.currentAnswer = 'False';
