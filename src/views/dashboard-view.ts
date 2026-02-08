@@ -56,6 +56,8 @@ export class DashboardView extends ItemView {
       clearInterval(this.refreshInterval);
       this.refreshInterval = null;
     }
+    this.stats = null;
+    this.containerEl.children[1]?.empty();
   }
 
   async refresh(): Promise<void> {
