@@ -72,7 +72,7 @@ export const DEFAULT_SETTINGS: SRSSettings = {
   ai: {
     provider: 'openai',
     apiKeys: {},
-    model: 'gpt-4o-mini',
+    model: 'gpt-5-nano',
   },
 
   review: {
@@ -117,24 +117,23 @@ export interface ModelOption {
 
 export const PROVIDER_MODELS: Record<AIProvider, ModelOption[]> = {
   claude: [
-    { id: 'claude-opus-4-5-20251101', name: 'Claude Opus 4.5', description: 'Best quality' },
-    { id: 'claude-sonnet-4-5-20250514', name: 'Claude Sonnet 4.5', description: 'Balanced quality' },
-    { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', description: 'Fast' },
+    { id: 'claude-opus-4-6', name: 'Claude Opus 4.6', description: 'Best quality' },
+    { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', description: 'Balanced quality' },
+    { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', description: 'Fast' },
   ],
   openai: [
-    { id: 'gpt-5.2', name: 'GPT-5.2', description: 'Latest flagship' },
-    { id: 'gpt-5.2-codex', name: 'GPT-5.2 Codex', description: 'Coding specialized' },
-    { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Fast and economical' },
-    { id: 'gpt-4o', name: 'GPT-4o', description: 'High quality' },
-    { id: 'o3-mini', name: 'O3 Mini', description: 'Reasoning model' },
+    { id: 'gpt-5.4', name: 'GPT-5.4', description: 'Latest flagship' },
+    { id: 'gpt-5-mini', name: 'GPT-5 Mini', description: 'Standard (Reasoning)' },
+    { id: 'gpt-5-nano', name: 'GPT-5 Nano', description: 'Fast and economical' },
   ],
   gemini: [
-    { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash', description: 'Fast' },
-    { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro', description: 'Best quality' },
+    { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', description: 'Best quality' },
+    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', description: 'Balanced' },
     { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', description: 'Stable' },
   ],
   grok: [
     { id: 'grok-4-1-fast', name: 'Grok 4.1 Fast', description: 'Latest xAI model' },
+    { id: 'grok-4-1-fast-non-reasoning', name: 'Grok 4.1 Fast (NR)', description: 'Non-reasoning' },
   ],
 };
 

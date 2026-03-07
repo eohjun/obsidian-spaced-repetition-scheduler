@@ -120,7 +120,7 @@ export class OpenAIProvider extends BaseProvider {
 
     // 테스트에는 저렴한 모델 사용
     this.apiKey = apiKey;
-    this.model = 'gpt-4o-mini';
+    this.model = 'gpt-5-nano';
 
     try {
       const response = await this.generate(
