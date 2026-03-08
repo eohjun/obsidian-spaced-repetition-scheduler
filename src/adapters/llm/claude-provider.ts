@@ -1,6 +1,13 @@
 /**
  * ClaudeProvider
- * Anthropic Claude API 프로바이더
+ * Anthropic Claude API 프로바이더 — 공유 빌더/파서 사용
+ *
+ * 공유 패키지가 처리하는 것:
+ * - Extended thinking 지원 (Opus 4.6 adaptive / Sonnet 4.6 enabled)
+ * - Thinking 활성 시 temperature 자동 차단
+ * - System 메시지 → top-level system 파라미터 분리
+ * - Thinking 블록 필터링 (응답에서 text만 추출)
+ * - 토큰 자동 조정 (thinking budget < max_tokens 보장)
  */
 
 import type {
@@ -9,92 +16,57 @@ import type {
   LLMGenerateOptions,
 } from '../../core/domain/interfaces/llm-provider.interface';
 import { BaseProvider } from './base-provider';
+import {
+  buildAnthropicBody,
+  parseAnthropicResponse,
+  getAnthropicHeaders,
+} from 'obsidian-llm-shared';
 
 const CLAUDE_API_ENDPOINT = 'https://api.anthropic.com/v1/messages';
-const CLAUDE_API_VERSION = '2023-06-01';
-
-interface ClaudeMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
-interface ClaudeResponse {
-  id: string;
-  type: string;
-  role: string;
-  content: Array<{ type: string; text: string }>;
-  model: string;
-  stop_reason: string;
-  usage: {
-    input_tokens: number;
-    output_tokens: number;
-  };
-}
 
 export class ClaudeProvider extends BaseProvider {
   readonly name = 'Claude';
 
-  /**
-   * Claude API로 텍스트 생성
-   */
   async generate(
     messages: LLMMessage[],
     options?: LLMGenerateOptions
   ): Promise<LLMResponse> {
     if (!this.isAvailable()) {
-      return {
-        success: false,
-        content: '',
-        error: 'API 키가 설정되지 않았습니다.',
-      };
+      return { success: false, content: '', error: 'API 키가 설정되지 않았습니다.' };
     }
 
     try {
-      // 시스템 프롬프트 추출
-      const systemPrompt = this.extractSystemPrompt(messages);
-      const claudeMessages = this.formatMessages(messages);
-
-      const requestBody: Record<string, unknown> = {
-        model: this.model,
-        messages: claudeMessages,
-        max_tokens: options?.maxTokens ?? 4096,
-      };
-
-      // 시스템 프롬프트가 있으면 추가
-      if (systemPrompt) {
-        requestBody.system = systemPrompt;
-      }
-
-      // temperature 설정 (Claude는 모든 모델에서 지원)
-      if (options?.temperature !== undefined) {
-        requestBody.temperature = options.temperature;
-      }
-
-      // stop sequences
-      if (options?.stopSequences?.length) {
-        requestBody.stop_sequences = options.stopSequences;
-      }
-
-      const response = await this.makeRequest<ClaudeResponse>({
-        url: CLAUDE_API_ENDPOINT,
-        method: 'POST',
-        headers: {
-          'x-api-key': this.apiKey,
-          'anthropic-version': CLAUDE_API_VERSION,
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
+      const body = buildAnthropicBody(messages, this.model, {
+        maxTokens: options?.maxTokens,
+        temperature: options?.temperature,
       });
 
-      return this.parseResponse(response);
+      const json = await this.makeRequest<Record<string, unknown>>({
+        url: CLAUDE_API_ENDPOINT,
+        method: 'POST',
+        headers: getAnthropicHeaders(this.apiKey),
+        body: JSON.stringify(body),
+      });
+
+      const result = parseAnthropicResponse(json);
+      if (!result.success) {
+        return { success: false, content: '', error: result.error };
+      }
+
+      return {
+        success: true,
+        content: result.text,
+        usage: {
+          promptTokens: result.usage.inputTokens,
+          completionTokens: result.usage.outputTokens,
+          totalTokens: result.usage.totalTokens,
+        },
+      };
     } catch (error) {
       return this.handleError(error);
     }
   }
 
-  /**
-   * API 키 유효성 테스트
-   */
   async testApiKey(apiKey: string): Promise<boolean> {
     const originalKey = this.apiKey;
     this.apiKey = apiKey;
@@ -104,46 +76,11 @@ export class ClaudeProvider extends BaseProvider {
         [{ role: 'user', content: 'Hello' }],
         { maxTokens: 10 }
       );
-
       this.apiKey = originalKey;
       return response.success;
     } catch {
       this.apiKey = originalKey;
       return false;
     }
-  }
-
-  // =========================================================================
-  // Private Methods
-  // =========================================================================
-
-  /**
-   * LLMMessage를 Claude 형식으로 변환
-   */
-  private formatMessages(messages: LLMMessage[]): ClaudeMessage[] {
-    return this.filterNonSystemMessages(messages).map((m) => ({
-      role: m.role as 'user' | 'assistant',
-      content: m.content,
-    }));
-  }
-
-  /**
-   * Claude 응답 파싱
-   */
-  private parseResponse(response: ClaudeResponse): LLMResponse {
-    const content = response.content
-      .filter((c) => c.type === 'text')
-      .map((c) => c.text)
-      .join('');
-
-    return {
-      success: true,
-      content,
-      usage: {
-        promptTokens: response.usage.input_tokens,
-        completionTokens: response.usage.output_tokens,
-        totalTokens: response.usage.input_tokens + response.usage.output_tokens,
-      },
-    };
   }
 }
