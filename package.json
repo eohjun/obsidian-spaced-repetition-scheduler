@@ -27,5 +27,8 @@
 		"obsidian": "^1.11.0",
 		"tslib": "^2.8.1",
 		"typescript": "^5.9.3"
+	},
+	"dependencies": {
+		"obsidian-llm-shared": "github:eohjun/obsidian-llm-shared"
 	}
 }
