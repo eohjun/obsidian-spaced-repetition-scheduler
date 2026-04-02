@@ -16,6 +16,8 @@ import { LLMQuizGenerator } from '../adapters/llm/llm-quiz-generator';
 import type { ILLMProvider } from '../core/domain/interfaces/llm-provider.interface';
 import { ClaudeProvider } from '../adapters/llm/claude-provider';
 import { OpenAIProvider } from '../adapters/llm/openai-provider';
+import { GeminiProvider } from '../adapters/llm/gemini-provider';
+import { GrokProvider } from '../adapters/llm/grok-provider';
 import { generateNoteId } from '../core/domain/utils/note-id';
 import type { SM2Quality } from '../core/domain/interfaces/scheduler.interface';
 
@@ -93,18 +95,21 @@ export class QuizModal extends Modal {
     switch (settings.ai.provider) {
       case 'claude':
         provider = new ClaudeProvider();
-        provider.setApiKey(apiKey);
-        provider.setModel(settings.ai.model);
         break;
       case 'openai':
         provider = new OpenAIProvider();
-        provider.setApiKey(apiKey);
-        provider.setModel(settings.ai.model);
+        break;
+      case 'gemini':
+        provider = new GeminiProvider();
+        break;
+      case 'grok':
+        provider = new GrokProvider();
         break;
       default:
-        // Other providers not yet implemented
         return;
     }
+    provider.setApiKey(apiKey);
+    provider.setModel(settings.ai.model);
 
     this.quizGenerator = new LLMQuizGenerator(provider);
   }

@@ -21,6 +21,8 @@ import { SM2Scheduler } from './adapters/scheduling/sm2-scheduler';
 import { CosineSimilarityClusteringService } from './adapters/clustering/cosine-similarity-clustering';
 import { ClaudeProvider } from './adapters/llm/claude-provider';
 import { OpenAIProvider } from './adapters/llm/openai-provider';
+import { GeminiProvider } from './adapters/llm/gemini-provider';
+import { GrokProvider } from './adapters/llm/grok-provider';
 import { DashboardView, DASHBOARD_VIEW_TYPE } from './views/dashboard-view';
 import { ReviewModal } from './views/review-modal';
 import { QuizModal } from './views/quiz-modal';
@@ -381,13 +383,21 @@ export default class SRSPlugin extends Plugin {
     try {
       let testProvider;
 
-      if (provider === 'claude') {
-        testProvider = new ClaudeProvider();
-      } else if (provider === 'openai') {
-        testProvider = new OpenAIProvider();
-      } else {
-        // Other providers to be implemented later
-        return false;
+      switch (provider) {
+        case 'claude':
+          testProvider = new ClaudeProvider();
+          break;
+        case 'openai':
+          testProvider = new OpenAIProvider();
+          break;
+        case 'gemini':
+          testProvider = new GeminiProvider();
+          break;
+        case 'grok':
+          testProvider = new GrokProvider();
+          break;
+        default:
+          return false;
       }
 
       return await testProvider.testApiKey(apiKey);
