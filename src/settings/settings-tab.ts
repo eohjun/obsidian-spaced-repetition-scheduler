@@ -78,7 +78,7 @@ export class SRSSettingTab extends PluginSettingTab {
       .setDesc(`Enter your ${apiKeyName} API key`)
       .addText((text) => {
         text
-          .setPlaceholder('sk-...')
+          .setPlaceholder(this.getApiKeyPlaceholder(provider))
           .setValue(this.plugin.settings.ai.apiKeys[provider] || '')
           .onChange(async (value) => {
             this.plugin.settings.ai.apiKeys[provider] = value;
@@ -478,6 +478,16 @@ export class SRSSettingTab extends PluginSettingTab {
       grok: 'xAI',
     };
     return names[provider];
+  }
+
+  private getApiKeyPlaceholder(provider: AIProvider): string {
+    const placeholders: Record<AIProvider, string> = {
+      openai: 'sk-...',
+      claude: 'sk-ant-...',
+      gemini: 'AIza...',
+      grok: 'xai-...',
+    };
+    return placeholders[provider];
   }
 
   private getProviderApiUrl(provider: AIProvider): string {
