@@ -72,7 +72,7 @@ export const DEFAULT_SETTINGS: SRSSettings = {
   ai: {
     provider: 'openai',
     apiKeys: {},
-    model: 'gpt-5-nano',
+    model: 'gpt-5.4-nano',
   },
 
   review: {
@@ -119,12 +119,12 @@ export const PROVIDER_MODELS: Record<AIProvider, ModelOption[]> = {
   claude: [
     { id: 'claude-opus-4-6', name: 'Claude Opus 4.6', description: 'Best quality' },
     { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', description: 'Balanced quality' },
-    { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', description: 'Fast' },
+    { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5', description: 'Fast' },
   ],
   openai: [
     { id: 'gpt-5.4', name: 'GPT-5.4', description: 'Latest flagship' },
-    { id: 'gpt-5-mini', name: 'GPT-5 Mini', description: 'Standard (Reasoning)' },
-    { id: 'gpt-5-nano', name: 'GPT-5 Nano', description: 'Fast and economical' },
+    { id: 'gpt-5.4-mini', name: 'GPT-5.4 Mini', description: 'Standard (Reasoning)' },
+    { id: 'gpt-5.4-nano', name: 'GPT-5.4 Nano', description: 'Fast and economical' },
   ],
   gemini: [
     { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', description: 'Best quality' },

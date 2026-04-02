@@ -68,18 +68,17 @@ export class ClaudeProvider extends BaseProvider {
   }
 
   async testApiKey(apiKey: string): Promise<boolean> {
-    const originalKey = this.apiKey;
-    this.apiKey = apiKey;
-
     try {
-      const response = await this.generate(
-        [{ role: 'user', content: 'Hello' }],
-        { maxTokens: 10 }
-      );
-      this.apiKey = originalKey;
-      return response.success;
+      const response = await this.makeRequest<{ data?: unknown[] }>({
+        url: 'https://api.anthropic.com/v1/models',
+        method: 'GET',
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+      });
+      return Array.isArray(response?.data);
     } catch {
-      this.apiKey = originalKey;
       return false;
     }
   }

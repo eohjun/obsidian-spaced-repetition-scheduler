@@ -67,22 +67,14 @@ export class OpenAIProvider extends BaseProvider {
   }
 
   async testApiKey(apiKey: string): Promise<boolean> {
-    const originalKey = this.apiKey;
-    const originalModel = this.model;
-    this.apiKey = apiKey;
-    this.model = 'gpt-5-nano';
-
     try {
-      const response = await this.generate(
-        [{ role: 'user', content: 'Hello' }],
-        { maxTokens: 10 }
-      );
-      this.apiKey = originalKey;
-      this.model = originalModel;
-      return response.success;
+      const response = await this.makeRequest<{ data?: unknown[] }>({
+        url: 'https://api.openai.com/v1/models',
+        method: 'GET',
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      return Array.isArray(response?.data);
     } catch {
-      this.apiKey = originalKey;
-      this.model = originalModel;
       return false;
     }
   }
