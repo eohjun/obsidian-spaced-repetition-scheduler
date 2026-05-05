@@ -5,6 +5,7 @@
 
 import type { QuestionType } from '../core/domain/entities/quiz';
 import type { AIProvider } from '../core/application/services/ai-service';
+import { isDeprecatedModel, getProviderConfig } from 'obsidian-llm-shared';
 
 // =============================================================================
 // Settings Interface
@@ -117,22 +118,25 @@ export interface ModelOption {
 
 export const PROVIDER_MODELS: Record<AIProvider, ModelOption[]> = {
   claude: [
-    { id: 'claude-opus-4-6', name: 'Claude Opus 4.6', description: 'Best quality' },
+    { id: 'claude-opus-4-7', name: 'Claude Opus 4.7', description: 'Latest flagship' },
+    { id: 'claude-opus-4-6', name: 'Claude Opus 4.6', description: 'Previous flagship' },
     { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', description: 'Balanced quality' },
     { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5', description: 'Fast' },
   ],
   openai: [
-    { id: 'gpt-5.4', name: 'GPT-5.4', description: 'Latest flagship' },
-    { id: 'gpt-5.4-mini', name: 'GPT-5.4 Mini', description: 'Standard (Reasoning)' },
+    { id: 'gpt-5.5', name: 'GPT-5.5', description: 'Latest flagship (Reasoning)' },
+    { id: 'gpt-5.4', name: 'GPT-5.4', description: 'Standard (Reasoning)' },
+    { id: 'gpt-5.4-mini', name: 'GPT-5.4 Mini', description: 'Mid-tier (Reasoning)' },
     { id: 'gpt-5.4-nano', name: 'GPT-5.4 Nano', description: 'Fast and economical' },
   ],
   gemini: [
     { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', description: 'Best quality' },
-    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', description: 'Balanced' },
-    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', description: 'Stable' },
+    { id: 'gemini-3.1-flash-lite-preview', name: 'Gemini 3.1 Flash-Lite', description: 'Fast and economical' },
+    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', description: 'Balanced (legacy)' },
   ],
   grok: [
-    { id: 'grok-4-1-fast', name: 'Grok 4.1 Fast', description: 'Latest xAI model' },
+    { id: 'grok-4.3', name: 'Grok 4.3', description: 'xAI recommended (Reasoning)' },
+    { id: 'grok-4-1-fast', name: 'Grok 4.1 Fast', description: 'Reasoning' },
     { id: 'grok-4-1-fast-non-reasoning', name: 'Grok 4.1 Fast (NR)', description: 'Non-reasoning' },
   ],
 };
@@ -174,9 +178,12 @@ export function validateSettings(settings: SRSSettings): string[] {
 
 /**
  * Migrate settings (for version upgrades)
+ *
+ * Drops deprecated model ids (e.g. gemini-2.0-flash retiring 2026-06-01)
+ * by swapping in the lib's current default for that provider.
  */
 export function migrateSettings(oldSettings: Partial<SRSSettings>): SRSSettings {
-  return {
+  const merged: SRSSettings = {
     ...DEFAULT_SETTINGS,
     ...oldSettings,
     ai: { ...DEFAULT_SETTINGS.ai, ...oldSettings.ai },
@@ -185,4 +192,12 @@ export function migrateSettings(oldSettings: Partial<SRSSettings>): SRSSettings 
     notifications: { ...DEFAULT_SETTINGS.notifications, ...oldSettings.notifications },
     advanced: { ...DEFAULT_SETTINGS.advanced, ...oldSettings.advanced },
   };
+  if (merged.ai.model && isDeprecatedModel(merged.ai.model)) {
+    const fallback = getProviderConfig(merged.ai.provider)?.defaultModel;
+    if (fallback) {
+      console.warn(`[srs] Migrated deprecated model ${merged.ai.model} → ${fallback}`);
+      merged.ai.model = fallback;
+    }
+  }
+  return merged;
 }
